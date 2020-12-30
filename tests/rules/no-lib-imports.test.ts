@@ -1,4 +1,4 @@
-import * as rule from "./no-lib-imports";
+import * as rule from "../../src/rules/no-lib-imports";
 import { ESLintUtils } from "@typescript-eslint/experimental-utils";
 
 const ruleTester = new ESLintUtils.RuleTester({
