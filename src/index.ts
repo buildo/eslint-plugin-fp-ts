@@ -1,2 +1,3 @@
-import requireIndex from "requireindex";
-module.exports.rules = requireIndex(__dirname + "/rules");
+export const rules = {
+  "no-lib-imports": require("./rules/no-lib-imports"),
+};
