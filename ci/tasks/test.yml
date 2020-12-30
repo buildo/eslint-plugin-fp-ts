@@ -1,0 +1,16 @@
+platform: linux
+
+image_resource:
+  type: docker-image
+  source:
+    repository: node
+
+inputs:
+  - name: eslint-plugin-fp-ts
+
+caches:
+  - path: eslint-plugin-fp-ts/node_modules
+
+run:
+  path: ci/tasks/test.sh
+  dir: eslint-plugin-fp-ts

@@ -1,0 +1,72 @@
+resource_types:
+  - name: pull-request
+    type: docker-image
+    source:
+      repository: teliaoss/github-pr-resource
+
+resources:
+  - name: main
+    type: git
+    icon: github
+    source:
+      uri: git@github.com:buildo/eslint-plugin-fp-ts
+      branch: main
+      private_key: ((private-key))
+
+  - name: release
+    type: git
+    icon: github
+    source:
+      uri: git@github.com:buildo/eslint-plugin-fp-ts
+      branch: main
+      tag_filter: v*
+      private_key: ((private-key))
+
+  - name: pr
+    type: pull-request
+    source:
+      repository: buildo/eslint-plugin-fp-ts
+      access_token: ((github-token))
+
+jobs:
+  - name: update-pipeline
+    plan:
+      - get: eslint-plugin-fp-ts
+        resource: main
+        trigger: true
+      - set_pipeline: self
+        file: eslint-plugin-fp-ts/ci/pipeline.yml
+
+  - name: release
+    plan:
+      - get: eslint-plugin-fp-ts
+        resource: release
+        trigger: true
+      - task: test
+        file: eslint-plugin-fp-ts/ci/tasks/test.yml
+
+  - name: pr
+    plan:
+      - get: eslint-plugin-fp-ts
+        resource: pr
+        trigger: true
+        version: every
+      - put: pr
+        params:
+          path: eslint-plugin-fp-ts
+          status: pending
+          context: concourse
+      - task: test
+        file: eslint-plugin-fp-ts/ci/tasks/test.yml
+        on_success:
+          put: pr
+          params:
+            path: eslint-plugin-fp-ts
+            status: success
+            context: concourse
+        on_failure:
+          put: pr
+          params:
+            path: eslint-plugin-fp-ts
+            status: failure
+            context: concourse
