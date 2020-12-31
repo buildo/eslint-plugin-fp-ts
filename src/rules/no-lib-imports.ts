@@ -1,8 +1,4 @@
-import {
-  ASTUtils,
-  TSESLint,
-  TSESTree,
-} from "@typescript-eslint/experimental-utils";
+import { ASTUtils, TSESLint } from "@typescript-eslint/experimental-utils";
 
 const messages = {
   importNotAllowed:
@@ -17,9 +13,11 @@ export const meta: TSESLint.RuleMetaData<MessageIds> = {
   messages,
 };
 
-export function create(context: TSESLint.RuleContext<MessageIds, []>) {
+export function create(
+  context: TSESLint.RuleContext<MessageIds, []>
+): TSESLint.RuleListener {
   return {
-    ImportDeclaration(node: TSESTree.ImportDeclaration) {
+    ImportDeclaration(node) {
       const sourceValue = ASTUtils.getStringIfConstant(node.source);
       if (sourceValue) {
         const forbiddenImportPattern = /^fp-ts\/lib\//;
