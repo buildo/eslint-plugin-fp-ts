@@ -1,0 +1,19 @@
+platform: linux
+
+image_resource:
+  type: docker-image
+  source:
+    repository: node
+
+inputs:
+  - name: eslint-plugin-fp-ts
+
+caches:
+  - path: eslint-plugin-fp-ts/node_modules
+
+params:
+  NPM_TOKEN: ((npm_token))
+
+run:
+  path: ci/tasks/release.sh
+  dir: eslint-plugin-fp-ts

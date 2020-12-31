@@ -42,8 +42,8 @@ jobs:
       - get: eslint-plugin-fp-ts
         resource: release
         trigger: true
-      - task: test
-        file: eslint-plugin-fp-ts/ci/tasks/test.yml
+      - task: release
+        file: eslint-plugin-fp-ts/ci/tasks/release.yml
 
   - name: pr
     plan:
