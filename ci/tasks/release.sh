@@ -5,6 +5,8 @@ set -e
 LATEST_TAG=$(git describe --tags)
 VERSION=${LATEST_TAG#v}
 
+ssh-keyscan github.com >> $HOME/.ssh/known_hosts
+
 git config --global user.email "nemobot@buildo.io"
 git config --global user.name "Nemobot"
 
