@@ -2,8 +2,8 @@
 
 set -e
 
-LATEST_TAG=$(git describe --abbrev=0)
-VERSION=${TAG#v}
+LATEST_TAG=$(git describe --tags)
+VERSION=${LATEST_TAG#v}
 
 git config --global user.email "nemobot@buildo.io"
 git config --global user.name "Nemobot"
