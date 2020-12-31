@@ -13,7 +13,7 @@ caches:
 
 params:
   NPM_TOKEN: ((npm_token))
-  SSH_PRIVATE:KEY: ((private-key))
+  SSH_PRIVATE_KEY: ((private-key))
 
 run:
   path: ci/tasks/release.sh
