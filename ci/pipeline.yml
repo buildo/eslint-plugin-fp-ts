@@ -8,6 +8,8 @@ resources:
   - name: main
     type: git
     icon: github
+    webhook_token: 0gd4XZNL4Y94zYDLql3C
+    check_every: 24h
     source:
       uri: git@github.com:buildo/eslint-plugin-fp-ts
       branch: main
@@ -16,6 +18,8 @@ resources:
   - name: release
     type: git
     icon: github
+    webhook_token: 0gd4XZNL4Y94zYDLql3C
+    check_every: 24h
     source:
       uri: git@github.com:buildo/eslint-plugin-fp-ts
       branch: main
@@ -24,6 +28,9 @@ resources:
 
   - name: pr
     type: pull-request
+    icon: github
+    webhook_token: 0gd4XZNL4Y94zYDLql3C
+    check_every: 24h
     source:
       repository: buildo/eslint-plugin-fp-ts
       access_token: ((github-token))
