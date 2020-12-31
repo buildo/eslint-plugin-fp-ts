@@ -7,7 +7,7 @@ VERSION=${LATEST_TAG#v}
 
 mkdir -p $HOME/.ssh
 ssh-keyscan github.com >> $HOME/.ssh/known_hosts
-echo "$PRIVATE_KEY" > $HOME/.ssh/id_rsa
+echo "$SS_PRIVATE_KEY" > $HOME/.ssh/id_rsa
 chmod 400 $HOME/.ssh/id_rsa
 
 git config --global user.email "nemobot@buildo.io"
