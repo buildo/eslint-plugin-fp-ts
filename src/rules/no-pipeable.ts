@@ -7,7 +7,8 @@ import {
 const messages = {
   importPipeFromFunction:
     "The 'pipeable' module is deprecated. Import 'pipe' from the 'function' module instead",
-  pipeableIsDeprecated: "The 'pipeable' module is deprecated",
+  pipeableIsDeprecated:
+    "The 'pipeable' module is deprecated and will be removed in future versions of fp-ts",
 } as const;
 type MessageIds = keyof typeof messages;
 
@@ -41,6 +42,11 @@ export function create(
               fix(fixer) {
                 return fixer.replaceText(node.source, `"fp-ts/function"`);
               },
+            });
+          } else {
+            context.report({
+              node: node.source,
+              messageId: "pipeableIsDeprecated",
             });
           }
         }
