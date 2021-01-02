@@ -32,5 +32,13 @@ ruleTester.run("no-lib-imports", rule, {
       ],
       output: 'import { pipe } from "fp-ts/function"',
     },
+    {
+      code: 'import { pipeable } from "fp-ts/pipeable"',
+      errors: [
+        {
+          messageId: "pipeableIsDeprecated",
+        },
+      ],
+    },
   ],
 });
