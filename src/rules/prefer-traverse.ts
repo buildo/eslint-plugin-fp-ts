@@ -43,7 +43,7 @@ export function create(
           }
           return false;
         });
-        if (mapNodeIndex) {
+        if (mapNodeIndex >= 0) {
           const mapNode = node.arguments[
             mapNodeIndex
           ] as TSESTree.CallExpression;
