@@ -20,5 +20,5 @@ git add .
 git commit -m "v$VERSION"
 git push origin HEAD:main
 
-yarn config set _authToken $NPM_TOKEN
+echo "//registry.yarnpkg.com/:_authToken=$NPM_TOKEN" >> $HOME/.npmrc
 yarn publish --non-interactive
