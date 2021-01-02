@@ -53,6 +53,7 @@ jobs:
         file: eslint-plugin-fp-ts/ci/tasks/release.yml
 
   - name: pr
+    public: true
     plan:
       - get: eslint-plugin-fp-ts
         resource: pr
