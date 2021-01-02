@@ -40,6 +40,21 @@ export function calleeIdentifier(
   return undefined;
 }
 
+export function isFlowExpression<
+  TMessageIds extends string,
+  TOptions extends readonly unknown[]
+>(
+  node: TSESTree.CallExpression,
+  context: TSESLint.RuleContext<TMessageIds, TOptions>
+): boolean {
+  const callee = calleeIdentifier(node);
+  return !!(
+    callee &&
+    callee.name === "flow" &&
+    isIdentifierImportedFrom(callee, /fp-ts\//, context)
+  );
+}
+
 export function isPipeOrFlowExpression<
   TMessageIds extends string,
   TOptions extends readonly unknown[]

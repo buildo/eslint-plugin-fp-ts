@@ -8,7 +8,7 @@ const ruleTester = new ESLintUtils.RuleTester({
   },
 });
 
-ruleTester.run("no-lib-imports", rule, {
+ruleTester.run("no-pipeable", rule, {
   valid: [
     'import { pipe } from "fp-ts/function"',
     'import { pipe } from "fp-ts/lib/function"',

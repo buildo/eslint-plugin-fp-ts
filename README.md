@@ -42,3 +42,5 @@ and enable the rules you want, for example
   'pipeable' module
 - [fp-ts/prefer-traverse](docs/rules/prefer-traverse.md): Replace map + sequence
   with traverse
+- [fp-ts/no-redundant-flow](docs/rules/no-redundant-flow.md): Remove redundant
+  uses of flow
