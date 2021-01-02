@@ -24,7 +24,8 @@ export function create(
 ): TSESLint.RuleListener {
   return {
     CallExpression(node) {
-      if (calleeIdentifier(node)?.name === "pipe") {
+      const callee = calleeIdentifier(node);
+      if (callee && ["pipe", "flow"].includes(callee.name)) {
         const mapNodeIndex = node.arguments.findIndex((a, index) => {
           if (
             a.type === AST_NODE_TYPES.CallExpression &&
