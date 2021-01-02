@@ -40,3 +40,5 @@ and enable the rules you want, for example
   'fp-ts/lib'
 - [fp-ts/no-pipeable](docs/rules/no-pipeable.md): Disallow imports from the
   'pipeable' module
+- [fp-ts/prefer-traverse](docs/rules/prefer-traverse.md): Replace map + sequence
+  with traverse

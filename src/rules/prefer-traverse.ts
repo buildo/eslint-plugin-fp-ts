@@ -1,10 +1,13 @@
 import {
   AST_NODE_TYPES,
   TSESLint,
-  TSESTree,
 } from "@typescript-eslint/experimental-utils";
-import { generate } from "astring";
-import { calleeIdentifier } from "../utils";
+import {
+  calleeIdentifier,
+  getAdjacentCombinators,
+  isPipeOrFlowExpression,
+  prettyPrint,
+} from "../utils";
 
 const messages = {
   mapSequenceIsTraverse: "map followed by sequence can be replaced by traverse",
@@ -24,50 +27,52 @@ export function create(
 ): TSESLint.RuleListener {
   return {
     CallExpression(node) {
-      const callee = calleeIdentifier(node);
-      if (callee && ["pipe", "flow"].includes(callee.name)) {
-        const mapNodeIndex = node.arguments.findIndex((a, index) => {
-          if (
-            a.type === AST_NODE_TYPES.CallExpression &&
-            index < node.arguments.length - 1
-          ) {
-            const b = node.arguments[index + 1];
-            if (b?.type === AST_NODE_TYPES.CallExpression) {
-              if (
-                calleeIdentifier(a)?.name === "map" &&
-                calleeIdentifier(b)?.name === "sequence"
-              ) {
-                return true;
-              }
-            }
-          }
-          return false;
-        });
-        if (mapNodeIndex >= 0) {
-          const mapNode = node.arguments[
-            mapNodeIndex
-          ] as TSESTree.CallExpression;
-          const sequenceNode = node.arguments[
-            mapNodeIndex + 1
-          ] as TSESTree.CallExpression;
+      if (isPipeOrFlowExpression(node, context)) {
+        const result = getAdjacentCombinators(node, [
+          { name: /map|mapWithIndex/ },
+          { name: "sequence" },
+        ]);
+        if (result) {
+          const [mapNode, sequenceNode] = result;
 
+          // NOTE(gabro): this is a naive way of checking whether map and sequence are from the same module
+          // We assume the most commonly used syntax is something like:
+          //
+          // import { array } from 'fp-ts'
+          // pipe(
+          //   [1, 2],
+          //   array.map(...),
+          //   array.sequence(...)
+          // )
+          //
+          // So we check that array.map and array.sequence have the same prefix ("array." in this example)
+          // by pretty-printing it and comparing the result.
+          //
+          // This works well enough in practice, but if needed this can be made more exact by using
+          // TypeScript's compiler API and comparing the types.
           const mapPrefix =
             mapNode.callee.type === AST_NODE_TYPES.MemberExpression
-              ? generate(mapNode.callee.object as any)
-              : "";
-          const sequencePrefix =
-            sequenceNode.callee.type === AST_NODE_TYPES.MemberExpression
-              ? generate(sequenceNode.callee.object as any)
+              ? prettyPrint(mapNode.callee.object)
               : "";
 
-          if (
-            mapNode &&
-            sequenceNode &&
-            mapNode &&
-            mapPrefix === sequencePrefix
-          ) {
+          const sequencePrefix =
+            sequenceNode.callee.type === AST_NODE_TYPES.MemberExpression
+              ? prettyPrint(sequenceNode.callee.object)
+              : "";
+
+          const samePrefix = mapPrefix === sequencePrefix;
+
+          const traverseIdentifier =
+            calleeIdentifier(mapNode)?.name === "mapWithIndex"
+              ? "traverseWithIndex"
+              : "traverse";
+
+          if (mapNode && sequenceNode && mapNode && samePrefix) {
             context.report({
-              node: mapNode,
+              loc: {
+                start: mapNode.loc.start,
+                end: sequenceNode.loc.end,
+              },
               messageId: "mapSequenceIsTraverse",
               suggest: [
                 {
@@ -77,12 +82,15 @@ export function create(
                       fixer.remove(sequenceNode),
                       fixer.removeRange([
                         mapNode.range[1],
-                        mapNode.range[1] + 1,
+                        sequenceNode.range[0],
                       ]),
-                      fixer.replaceText(calleeIdentifier(mapNode)!, "traverse"),
+                      fixer.replaceText(
+                        calleeIdentifier(mapNode)!,
+                        traverseIdentifier
+                      ),
                       fixer.insertTextAfter(
                         mapNode.callee,
-                        `(${generate(sequenceNode.arguments[0] as any)})`
+                        `(${prettyPrint(sequenceNode.arguments[0]!)})`
                       ),
                     ];
                   },

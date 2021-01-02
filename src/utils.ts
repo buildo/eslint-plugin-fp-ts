@@ -4,6 +4,7 @@ import {
   AST_NODE_TYPES,
   TSESTree,
 } from "@typescript-eslint/experimental-utils";
+import { generate } from "astring";
 
 export function isIdentifierImportedFrom<
   TMessageIds extends string,
@@ -37,4 +38,63 @@ export function calleeIdentifier(
       }
   }
   return undefined;
+}
+
+export function isPipeOrFlowExpression<
+  TMessageIds extends string,
+  TOptions extends readonly unknown[]
+>(
+  node: TSESTree.CallExpression,
+  context: TSESLint.RuleContext<TMessageIds, TOptions>
+): boolean {
+  const callee = calleeIdentifier(node);
+  return !!(
+    callee &&
+    ["pipe", "flow"].includes(callee.name) &&
+    isIdentifierImportedFrom(callee, /fp-ts\//, context)
+  );
+}
+
+type CombinatorQuery = {
+  name: string | RegExp;
+};
+export function getAdjacentCombinators(
+  pipeOrFlowExpression: TSESTree.CallExpression,
+  combinatorQueries: [CombinatorQuery, CombinatorQuery]
+): [TSESTree.CallExpression, TSESTree.CallExpression] | undefined {
+  const firstCombinatorIndex = pipeOrFlowExpression.arguments.findIndex(
+    (a, index) => {
+      if (
+        a.type === AST_NODE_TYPES.CallExpression &&
+        index < pipeOrFlowExpression.arguments.length - 1
+      ) {
+        const b = pipeOrFlowExpression.arguments[index + 1];
+        if (b?.type === AST_NODE_TYPES.CallExpression) {
+          return (
+            calleeIdentifier(a)?.name.match(combinatorQueries[0].name) &&
+            calleeIdentifier(b)?.name.match(combinatorQueries[1].name)
+          );
+        }
+      }
+      return false;
+    }
+  );
+
+  if (firstCombinatorIndex >= 0) {
+    const firstCombinator = pipeOrFlowExpression.arguments[
+      firstCombinatorIndex
+    ] as TSESTree.CallExpression;
+
+    const secondCombinator = pipeOrFlowExpression.arguments[
+      firstCombinatorIndex + 1
+    ] as TSESTree.CallExpression;
+
+    return [firstCombinator, secondCombinator];
+  }
+
+  return undefined;
+}
+
+export function prettyPrint(node: TSESTree.Node): string {
+  return generate(node as any);
 }

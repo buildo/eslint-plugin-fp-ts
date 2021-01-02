@@ -45,7 +45,6 @@ import { pipe } from "fp-ts/function"
 pipe(
   [1, 2, 3],
   array.traverse(option.option)(option.some)
-  ${""}
 )
 `,
             },
@@ -77,7 +76,6 @@ import { pipe } from "fp-ts/function"
 pipe(
   [1, 2, 3],
   traverse(option.option)(option.some)
-  ${""}
 )
 `,
             },
@@ -107,7 +105,37 @@ import { flow } from "fp-ts/function"
 
 flow(
   array.traverse(option.option)(option.some)
-  ${""}
+)
+`,
+            },
+          ],
+        },
+      ],
+    },
+    {
+      code: `
+import { mapWithIndex, sequence } from "fp-ts/Array"
+import { pipe } from "fp-ts/function"
+
+pipe(
+  [1, 2, 3],
+  mapWithIndex(option.some),
+  sequence(option.option)
+)
+`,
+      errors: [
+        {
+          messageId: "mapSequenceIsTraverse",
+          suggestions: [
+            {
+              messageId: "replaceMapSequenceWithTraverse",
+              output: `
+import { mapWithIndex, sequence } from "fp-ts/Array"
+import { pipe } from "fp-ts/function"
+
+pipe(
+  [1, 2, 3],
+  traverseWithIndex(option.option)(option.some)
 )
 `,
             },
