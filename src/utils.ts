@@ -25,19 +25,33 @@ export function isIdentifierImportedFrom<
 }
 
 export function calleeIdentifier(
-  node: TSESTree.CallExpression
+  node:
+    | TSESTree.CallExpression
+    | TSESTree.MemberExpression
+    | TSESTree.Identifier
 ): TSESTree.Identifier | undefined {
-  switch (node.callee.type) {
-    case AST_NODE_TYPES.Identifier:
-      return node.callee;
+  switch (node.type) {
     case AST_NODE_TYPES.MemberExpression:
-      if (node.callee.property.type === AST_NODE_TYPES.Identifier) {
-        return node.callee.property;
+      if (node.property.type === AST_NODE_TYPES.Identifier) {
+        return node.property;
       } else {
         return undefined;
       }
+    case AST_NODE_TYPES.CallExpression:
+      switch (node.callee.type) {
+        case AST_NODE_TYPES.Identifier:
+          return node.callee;
+        case AST_NODE_TYPES.MemberExpression:
+          if (node.callee.property.type === AST_NODE_TYPES.Identifier) {
+            return node.callee.property;
+          } else {
+            return undefined;
+          }
+      }
+      return undefined;
+    case AST_NODE_TYPES.Identifier:
+      return node;
   }
-  return undefined;
 }
 
 export function isFlowExpression<
@@ -73,18 +87,29 @@ export function isPipeOrFlowExpression<
 type CombinatorQuery = {
   name: string | RegExp;
 };
+type CombinatorNode =
+  | TSESTree.CallExpression
+  | TSESTree.MemberExpression
+  | TSESTree.Identifier;
 export function getAdjacentCombinators(
   pipeOrFlowExpression: TSESTree.CallExpression,
-  combinatorQueries: [CombinatorQuery, CombinatorQuery]
-): [TSESTree.CallExpression, TSESTree.CallExpression] | undefined {
+  combinatorQueries: [CombinatorQuery, CombinatorQuery],
+  requireMatchingPrefix: boolean
+): [CombinatorNode, CombinatorNode] | undefined {
   const firstCombinatorIndex = pipeOrFlowExpression.arguments.findIndex(
     (a, index) => {
       if (
-        a.type === AST_NODE_TYPES.CallExpression &&
+        (a.type === AST_NODE_TYPES.CallExpression ||
+          a.type === AST_NODE_TYPES.MemberExpression ||
+          a.type === AST_NODE_TYPES.Identifier) &&
         index < pipeOrFlowExpression.arguments.length - 1
       ) {
         const b = pipeOrFlowExpression.arguments[index + 1];
-        if (b?.type === AST_NODE_TYPES.CallExpression) {
+        if (
+          b?.type === AST_NODE_TYPES.CallExpression ||
+          b?.type === AST_NODE_TYPES.MemberExpression ||
+          b?.type === AST_NODE_TYPES.Identifier
+        ) {
           return (
             calleeIdentifier(a)?.name.match(combinatorQueries[0].name) &&
             calleeIdentifier(b)?.name.match(combinatorQueries[1].name)
@@ -98,13 +123,53 @@ export function getAdjacentCombinators(
   if (firstCombinatorIndex >= 0) {
     const firstCombinator = pipeOrFlowExpression.arguments[
       firstCombinatorIndex
-    ] as TSESTree.CallExpression;
+    ] as CombinatorNode;
 
     const secondCombinator = pipeOrFlowExpression.arguments[
       firstCombinatorIndex + 1
-    ] as TSESTree.CallExpression;
+    ] as CombinatorNode;
 
-    return [firstCombinator, secondCombinator];
+    if (requireMatchingPrefix) {
+      // NOTE(gabro): this is a naive way of checking whether two combinators are
+      // from the same module.
+      // We assume the most commonly used syntax is something like:
+      //
+      // import { array } from 'fp-ts'
+      // pipe(
+      //   [1, 2],
+      //   array.map(...),
+      //   array.sequence(...)
+      // )
+      //
+      // So we check that array.map and array.sequence have the same prefix ("array." in this example)
+      // by pretty-printing it and comparing the result.
+      //
+      // This works well enough in practice, but if needed this can be made more exact by using
+      // TypeScript's compiler API and comparing the types.
+      const getPrefix = (
+        node:
+          | TSESTree.CallExpression
+          | TSESTree.MemberExpression
+          | TSESTree.Identifier
+      ): string => {
+        switch (node.type) {
+          case AST_NODE_TYPES.CallExpression:
+            return node.callee.type === AST_NODE_TYPES.MemberExpression
+              ? prettyPrint(node.callee.object)
+              : "";
+          case AST_NODE_TYPES.MemberExpression:
+            return prettyPrint(node.object);
+          case AST_NODE_TYPES.Identifier:
+            return "";
+        }
+      };
+
+      if (getPrefix(firstCombinator) === getPrefix(secondCombinator)) {
+        return [firstCombinator, secondCombinator];
+      }
+    } else {
+      return [firstCombinator, secondCombinator];
+    }
   }
 
   return undefined;

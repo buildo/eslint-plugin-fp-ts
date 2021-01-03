@@ -3,4 +3,5 @@ export const rules = {
   "no-pipeable": require("./rules/no-pipeable"),
   "prefer-traverse": require("./rules/prefer-traverse"),
   "no-redundant-flow": require("./rules/no-redundant-flow"),
+  "prefer-chain": require("./rules/prefer-chain"),
 };
