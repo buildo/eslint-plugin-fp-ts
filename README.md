@@ -37,15 +37,17 @@ and enable the rules you want, for example
 ## List of supported rules
 
 - [fp-ts/no-lib-imports](docs/rules/no-lib-imports.md): Disallow imports from
-  'fp-ts/lib'
+  'fp-ts/lib' (autofixable 🔧)
 - [fp-ts/no-pipeable](docs/rules/no-pipeable.md): Disallow imports from the
-  'pipeable' module
+  'pipeable' module (autofixable 🔧)
 - [fp-ts/prefer-traverse](docs/rules/prefer-traverse.md): Replace map + sequence
-  with traverse
+  with traverse (autofixable 🔧)
 - [fp-ts/no-redundant-flow](docs/rules/no-redundant-flow.md): Remove redundant
-  uses of flow
+  uses of flow (autofixable 🔧)
 - [fp-ts/prefer-chain](docs/rules/prefer-chain.md): Replace map + flatten with
-  chain
+  chain (autofixable 🔧)
+- [fp-ts/no-module-imports](docs/rules/no-module-imports.md): Disallow imports
+  from fp-ts modules (autofixable 🔧)
 
 ## Configurations
 
