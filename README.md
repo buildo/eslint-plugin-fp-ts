@@ -44,3 +44,4 @@ and enable the rules you want, for example
   with traverse
 - [fp-ts/no-redundant-flow](docs/rules/no-redundant-flow.md): Remove redundant
   uses of flow
+- [fp-ts/prefer-chain](docs/rules/prefer-chain.md): Replace map + flatten with chain
