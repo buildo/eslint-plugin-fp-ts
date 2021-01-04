@@ -1,4 +1,10 @@
-import { TSESLint, TSESTree } from "@typescript-eslint/experimental-utils";
+import {
+  AST_NODE_TYPES,
+  TSESLint,
+  TSESTree,
+} from "@typescript-eslint/experimental-utils";
+import { pipe } from "fp-ts/function";
+import { option } from "fp-ts";
 import {
   calleeIdentifier,
   getAdjacentCombinators,
@@ -25,50 +31,65 @@ export function create(
   return {
     CallExpression(node) {
       if (isPipeOrFlowExpression(node, context)) {
-        const result = getAdjacentCombinators(
-          node,
-          [{ name: /map|mapWithIndex/ }, { name: "sequence" }],
-          true
-        );
-        if (result) {
-          const mapNode = result[0] as TSESTree.CallExpression;
-          const sequenceNode = result[1] as TSESTree.CallExpression;
-
-          const traverseIdentifier =
-            calleeIdentifier(mapNode)?.name === "mapWithIndex"
-              ? "traverseWithIndex"
-              : "traverse";
-
-          context.report({
-            loc: {
-              start: mapNode.loc.start,
-              end: sequenceNode.loc.end,
+        pipe(
+          getAdjacentCombinators<
+            TSESTree.CallExpression,
+            TSESTree.CallExpression
+          >(
+            node,
+            {
+              name: /map|mapWithIndex/,
+              types: [AST_NODE_TYPES.CallExpression],
             },
-            messageId: "mapSequenceIsTraverse",
-            suggest: [
-              {
-                messageId: "replaceMapSequenceWithTraverse",
-                fix(fixer) {
-                  return [
-                    fixer.remove(sequenceNode),
-                    fixer.removeRange([
-                      mapNode.range[1],
-                      sequenceNode.range[0],
-                    ]),
-                    fixer.replaceText(
-                      calleeIdentifier(mapNode)!,
-                      traverseIdentifier
-                    ),
-                    fixer.insertTextAfter(
-                      mapNode.callee,
-                      `(${prettyPrint(sequenceNode.arguments[0]!)})`
-                    ),
-                  ];
+            {
+              name: "sequence",
+              types: [AST_NODE_TYPES.CallExpression],
+            },
+            true
+          ),
+          option.bindTo("combinators"),
+          option.bind("mapCalleeIdentifier", ({ combinators: [mapNode] }) =>
+            calleeIdentifier(mapNode)
+          ),
+          option.map(
+            ({ combinators: [mapNode, sequenceNode], mapCalleeIdentifier }) => {
+              const traverseIdentifier =
+                mapCalleeIdentifier.name === "mapWithIndex"
+                  ? "traverseWithIndex"
+                  : "traverse";
+
+              context.report({
+                loc: {
+                  start: mapNode.loc.start,
+                  end: sequenceNode.loc.end,
                 },
-              },
-            ],
-          });
-        }
+                messageId: "mapSequenceIsTraverse",
+                suggest: [
+                  {
+                    messageId: "replaceMapSequenceWithTraverse",
+                    fix(fixer) {
+                      return [
+                        fixer.remove(sequenceNode),
+                        fixer.removeRange([
+                          mapNode.range[1],
+                          sequenceNode.range[0],
+                        ]),
+                        fixer.replaceText(
+                          mapCalleeIdentifier,
+                          traverseIdentifier
+                        ),
+                        fixer.insertTextAfter(
+                          mapNode.callee,
+                          `(${prettyPrint(sequenceNode.arguments[0]!)})`
+                        ),
+                      ];
+                    },
+                  },
+                ],
+              });
+            }
+          )
+        );
       }
     },
   };
