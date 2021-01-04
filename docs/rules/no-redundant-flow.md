@@ -11,7 +11,7 @@ command line.
 Example of **incorrect** code for this rule:
 
 ```ts
-import { flow } from "fp-ts/pipeable";
+import { flow } from "fp-ts/function";
 import { some, Option } from "fp-ts/Option";
 
 const f: (n: number): Option<number> = flow(some);
@@ -20,7 +20,7 @@ const f: (n: number): Option<number> = flow(some);
 Example of **correct** code for this rule:
 
 ```ts
-import { flow } from "fp-ts/pipeable";
+import { flow } from "fp-ts/function";
 import { some, filter, Option } from "fp-ts/Option";
 
 const f: (n: number): Option<number> =
