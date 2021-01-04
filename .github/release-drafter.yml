@@ -7,3 +7,6 @@ categories:
   - title: "🔧 Dependency updates"
     labels:
       - "dependencies"
+  - title: "🧹 Chores"
+    labels:
+      - "chore"

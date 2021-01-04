@@ -3,4 +3,4 @@
 set -e
 
 yarn install --no-progress
-yarn test
+yarn preversion

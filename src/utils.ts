@@ -5,6 +5,10 @@ import {
   TSESTree,
 } from "@typescript-eslint/experimental-utils";
 import { generate } from "astring";
+import { option } from "fp-ts";
+import { pipe } from "fp-ts/function";
+import { sequenceS } from "fp-ts/Apply";
+import { Option } from "fp-ts/Option";
 
 export function isIdentifierImportedFrom<
   TMessageIds extends string,
@@ -29,28 +33,28 @@ export function calleeIdentifier(
     | TSESTree.CallExpression
     | TSESTree.MemberExpression
     | TSESTree.Identifier
-): TSESTree.Identifier | undefined {
+): Option<TSESTree.Identifier> {
   switch (node.type) {
     case AST_NODE_TYPES.MemberExpression:
       if (node.property.type === AST_NODE_TYPES.Identifier) {
-        return node.property;
+        return option.some(node.property);
       } else {
-        return undefined;
+        return option.none;
       }
     case AST_NODE_TYPES.CallExpression:
       switch (node.callee.type) {
         case AST_NODE_TYPES.Identifier:
-          return node.callee;
+          return option.some(node.callee);
         case AST_NODE_TYPES.MemberExpression:
           if (node.callee.property.type === AST_NODE_TYPES.Identifier) {
-            return node.callee.property;
+            return option.some(node.callee.property);
           } else {
-            return undefined;
+            return option.none;
           }
       }
-      return undefined;
+      return option.none;
     case AST_NODE_TYPES.Identifier:
-      return node;
+      return option.some(node);
   }
 }
 
@@ -61,11 +65,14 @@ export function isFlowExpression<
   node: TSESTree.CallExpression,
   context: TSESLint.RuleContext<TMessageIds, TOptions>
 ): boolean {
-  const callee = calleeIdentifier(node);
-  return !!(
-    callee &&
-    callee.name === "flow" &&
-    isIdentifierImportedFrom(callee, /fp-ts\//, context)
+  return pipe(
+    node,
+    calleeIdentifier,
+    option.exists(
+      (callee) =>
+        callee.name === "flow" &&
+        isIdentifierImportedFrom(callee, /fp-ts\//, context)
+    )
   );
 }
 
@@ -76,43 +83,59 @@ export function isPipeOrFlowExpression<
   node: TSESTree.CallExpression,
   context: TSESLint.RuleContext<TMessageIds, TOptions>
 ): boolean {
-  const callee = calleeIdentifier(node);
-  return !!(
-    callee &&
-    ["pipe", "flow"].includes(callee.name) &&
-    isIdentifierImportedFrom(callee, /fp-ts\//, context)
+  return pipe(
+    node,
+    calleeIdentifier,
+    option.exists(
+      (callee) =>
+        ["pipe", "flow"].includes(callee.name) &&
+        isIdentifierImportedFrom(callee, /fp-ts\//, context)
+    )
   );
 }
 
-type CombinatorQuery = {
-  name: string | RegExp;
-};
+function isWithinTypes<N extends TSESTree.Node>(
+  n: TSESTree.Node | undefined,
+  types: N["type"][]
+): n is N {
+  return !!n && types.includes(n.type);
+}
+
 type CombinatorNode =
   | TSESTree.CallExpression
   | TSESTree.MemberExpression
   | TSESTree.Identifier;
-export function getAdjacentCombinators(
+type CombinatorQuery<T extends CombinatorNode["type"]> = {
+  name: string | RegExp;
+  types: T[];
+};
+export function getAdjacentCombinators<
+  N1 extends CombinatorNode,
+  N2 extends CombinatorNode
+>(
   pipeOrFlowExpression: TSESTree.CallExpression,
-  combinatorQueries: [CombinatorQuery, CombinatorQuery],
+  combinator1: CombinatorQuery<N1["type"]>,
+  combinator2: CombinatorQuery<N2["type"]>,
   requireMatchingPrefix: boolean
-): [CombinatorNode, CombinatorNode] | undefined {
+): Option<[N1, N2]> {
   const firstCombinatorIndex = pipeOrFlowExpression.arguments.findIndex(
     (a, index) => {
       if (
-        (a.type === AST_NODE_TYPES.CallExpression ||
-          a.type === AST_NODE_TYPES.MemberExpression ||
-          a.type === AST_NODE_TYPES.Identifier) &&
+        isWithinTypes(a, combinator1.types) &&
         index < pipeOrFlowExpression.arguments.length - 1
       ) {
         const b = pipeOrFlowExpression.arguments[index + 1];
-        if (
-          b?.type === AST_NODE_TYPES.CallExpression ||
-          b?.type === AST_NODE_TYPES.MemberExpression ||
-          b?.type === AST_NODE_TYPES.Identifier
-        ) {
-          return (
-            calleeIdentifier(a)?.name.match(combinatorQueries[0].name) &&
-            calleeIdentifier(b)?.name.match(combinatorQueries[1].name)
+        if (isWithinTypes(b, combinator2.types)) {
+          return pipe(
+            sequenceS(option.option)({
+              idA: calleeIdentifier(a),
+              idB: calleeIdentifier(b),
+            }),
+            option.exists(
+              ({ idA, idB }) =>
+                !!idA.name.match(combinator1.name) &&
+                !!idB.name.match(combinator2.name)
+            )
           );
         }
       }
@@ -123,11 +146,11 @@ export function getAdjacentCombinators(
   if (firstCombinatorIndex >= 0) {
     const firstCombinator = pipeOrFlowExpression.arguments[
       firstCombinatorIndex
-    ] as CombinatorNode;
+    ] as N1;
 
     const secondCombinator = pipeOrFlowExpression.arguments[
       firstCombinatorIndex + 1
-    ] as CombinatorNode;
+    ] as N2;
 
     if (requireMatchingPrefix) {
       // NOTE(gabro): this is a naive way of checking whether two combinators are
@@ -146,12 +169,7 @@ export function getAdjacentCombinators(
       //
       // This works well enough in practice, but if needed this can be made more exact by using
       // TypeScript's compiler API and comparing the types.
-      const getPrefix = (
-        node:
-          | TSESTree.CallExpression
-          | TSESTree.MemberExpression
-          | TSESTree.Identifier
-      ): string => {
+      const getPrefix = (node: CombinatorNode): string => {
         switch (node.type) {
           case AST_NODE_TYPES.CallExpression:
             return node.callee.type === AST_NODE_TYPES.MemberExpression
@@ -165,14 +183,14 @@ export function getAdjacentCombinators(
       };
 
       if (getPrefix(firstCombinator) === getPrefix(secondCombinator)) {
-        return [firstCombinator, secondCombinator];
+        return option.some([firstCombinator, secondCombinator]);
       }
     } else {
-      return [firstCombinator, secondCombinator];
+      return option.some([firstCombinator, secondCombinator]);
     }
   }
 
-  return undefined;
+  return option.none;
 }
 
 export function prettyPrint(node: TSESTree.Node): string {
