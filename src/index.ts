@@ -1,3 +1,6 @@
+import { array, record, semigroup } from "fp-ts";
+import { pipe } from "fp-ts/function";
+
 export const rules = {
   "no-lib-imports": require("./rules/no-lib-imports"),
   "no-pipeable": require("./rules/no-pipeable"),
@@ -16,6 +19,17 @@ export const configs = {
   },
   all: {
     plugins: ["fp-ts"],
-    rules,
+    rules: rulesConfiguredAsError(rules),
   },
 };
+
+function rulesConfiguredAsError(
+  rules: Record<string, unknown>
+): Record<string, string> {
+  return pipe(
+    rules,
+    record.keys,
+    array.map<string, [string, string]>((k) => [`fp-ts/${k}`, "error"]),
+    record.fromFoldable(semigroup.getFirstSemigroup<string>(), array.Foldable)
+  );
+}
