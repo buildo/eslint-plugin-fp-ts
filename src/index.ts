@@ -5,3 +5,17 @@ export const rules = {
   "no-redundant-flow": require("./rules/no-redundant-flow"),
   "prefer-chain": require("./rules/prefer-chain"),
 };
+
+export const configs = {
+  recommended: {
+    plugins: ["fp-ts"],
+    rules: {
+      "fp-ts/no-lib-imports": "error",
+      "fp-ts/no-pipeable": "error",
+    },
+  },
+  all: {
+    plugins: ["fp-ts"],
+    rules,
+  },
+};
