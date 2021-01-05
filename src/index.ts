@@ -1,12 +1,20 @@
 import { array, record, semigroup } from "fp-ts";
 import { pipe } from "fp-ts/function";
 
-export const rules = {
+const potentialErrors = {
   "no-lib-imports": require("./rules/no-lib-imports"),
   "no-pipeable": require("./rules/no-pipeable"),
+};
+
+const suggestions = {
   "prefer-traverse": require("./rules/prefer-traverse"),
   "no-redundant-flow": require("./rules/no-redundant-flow"),
   "prefer-chain": require("./rules/prefer-chain"),
+};
+
+export const rules = {
+  ...potentialErrors,
+  ...suggestions,
 };
 
 export const configs = {
@@ -19,17 +27,21 @@ export const configs = {
   },
   all: {
     plugins: ["fp-ts"],
-    rules: rulesConfiguredAsError(rules),
+    rules: {
+      ...configuredRules(potentialErrors, "error"),
+      ...configuredRules(suggestions, "warn"),
+    },
   },
 };
 
-function rulesConfiguredAsError(
-  rules: Record<string, unknown>
+function configuredRules(
+  rules: Record<string, unknown>,
+  level: "warn" | "error"
 ): Record<string, string> {
   return pipe(
     rules,
     record.keys,
-    array.map<string, [string, string]>((k) => [`fp-ts/${k}`, "error"]),
+    array.map<string, [string, string]>((k) => [`fp-ts/${k}`, level]),
     record.fromFoldable(semigroup.getFirstSemigroup<string>(), array.Foldable)
   );
 }
