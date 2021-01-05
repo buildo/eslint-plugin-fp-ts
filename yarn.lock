@@ -870,9 +870,9 @@ astral-regex@^2.0.0:
   integrity sha512-Z7tMw1ytTXt5jqMcOP+OQteU1VuNK9Y02uuJtKQ1Sv69jXQKKg5cibLwGJow8yzZP+eAc18EmLGPal0bp36rvQ==
 
 astring@^1.4.3:
-  version "1.4.3"
-  resolved "https://registry.yarnpkg.com/astring/-/astring-1.4.3.tgz#b99d4b0349bc7b28934bb9f03f86ec34d69c3a09"
-  integrity sha512-yJlJU/bmN820vL+cbWShu2YQU87dBP5V7BH2N4wODapRv27A2dZtUD0LgjP9lZENvPe9XRoSyWx+pZR6qKqNBw==
+  version "1.6.0"
+  resolved "https://registry.yarnpkg.com/astring/-/astring-1.6.0.tgz#6ef319460368f6c9a514349a585ecf91b4f041b5"
+  integrity sha512-8Rhu9cQMu4CSie4IOTAgQl75kZ8dp+gmOipjCAkV1ZVSwuDXRKXDbi8YAlCOKzIh3mws/hNoXJu8EkZwfCakLQ==
 
 asynckit@^0.4.0:
   version "0.4.0"
