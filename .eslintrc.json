@@ -1,8 +1,5 @@
 {
   "parser": "@typescript-eslint/parser",
   "plugins": ["fp-ts"],
-  "rules": {
-    "fp-ts/no-lib-imports": "error",
-    "fp-ts/no-pipeable": "error"
-  }
+  "extends": "plugin:fp-ts/all"
 }
