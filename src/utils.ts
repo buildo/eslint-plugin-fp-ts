@@ -5,35 +5,22 @@ import {
   TSESTree,
 } from "@typescript-eslint/experimental-utils";
 import { generate } from "astring";
-import { option } from "fp-ts";
+import { visitorKeys as tsVisitorKeys } from "@typescript-eslint/typescript-estree";
+import { array, option, apply } from "fp-ts";
 import { pipe } from "fp-ts/function";
-import { sequenceS } from "fp-ts/Apply";
-import { Option } from "fp-ts/Option";
 
-export function isIdentifierImportedFrom<
-  TMessageIds extends string,
-  TOptions extends readonly unknown[]
->(
-  identifier: TSESTree.Identifier,
-  targetModuleName: string | RegExp,
-  context: TSESLint.RuleContext<TMessageIds, TOptions>
-): boolean {
-  const importDef = ASTUtils.findVariable(
-    ASTUtils.getInnermostScope(context.getScope(), identifier),
-    identifier.name
-  )?.defs.find((d) => d.type === "ImportBinding");
-  return !!(
-    importDef?.parent?.type === AST_NODE_TYPES.ImportDeclaration &&
-    importDef.parent.source.value?.toString().match(targetModuleName)
-  );
-}
+import estraverse from "estraverse";
+import {
+  RuleFix,
+  RuleFixer,
+} from "@typescript-eslint/experimental-utils/dist/ts-eslint";
 
 export function calleeIdentifier(
   node:
     | TSESTree.CallExpression
     | TSESTree.MemberExpression
     | TSESTree.Identifier
-): Option<TSESTree.Identifier> {
+): option.Option<TSESTree.Identifier> {
   switch (node.type) {
     case AST_NODE_TYPES.MemberExpression:
       if (node.property.type === AST_NODE_TYPES.Identifier) {
@@ -56,42 +43,6 @@ export function calleeIdentifier(
     case AST_NODE_TYPES.Identifier:
       return option.some(node);
   }
-}
-
-export function isFlowExpression<
-  TMessageIds extends string,
-  TOptions extends readonly unknown[]
->(
-  node: TSESTree.CallExpression,
-  context: TSESLint.RuleContext<TMessageIds, TOptions>
-): boolean {
-  return pipe(
-    node,
-    calleeIdentifier,
-    option.exists(
-      (callee) =>
-        callee.name === "flow" &&
-        isIdentifierImportedFrom(callee, /fp-ts\//, context)
-    )
-  );
-}
-
-export function isPipeOrFlowExpression<
-  TMessageIds extends string,
-  TOptions extends readonly unknown[]
->(
-  node: TSESTree.CallExpression,
-  context: TSESLint.RuleContext<TMessageIds, TOptions>
-): boolean {
-  return pipe(
-    node,
-    calleeIdentifier,
-    option.exists(
-      (callee) =>
-        ["pipe", "flow"].includes(callee.name) &&
-        isIdentifierImportedFrom(callee, /fp-ts\//, context)
-    )
-  );
 }
 
 function isWithinTypes<N extends TSESTree.Node>(
@@ -117,7 +68,7 @@ export function getAdjacentCombinators<
   combinator1: CombinatorQuery<N1["type"]>,
   combinator2: CombinatorQuery<N2["type"]>,
   requireMatchingPrefix: boolean
-): Option<[N1, N2]> {
+): option.Option<[N1, N2]> {
   const firstCombinatorIndex = pipeOrFlowExpression.arguments.findIndex(
     (a, index) => {
       if (
@@ -127,7 +78,7 @@ export function getAdjacentCombinators<
         const b = pipeOrFlowExpression.arguments[index + 1];
         if (isWithinTypes(b, combinator2.types)) {
           return pipe(
-            sequenceS(option.option)({
+            apply.sequenceS(option.option)({
               idA: calleeIdentifier(a),
               idB: calleeIdentifier(b),
             }),
@@ -196,3 +147,215 @@ export function getAdjacentCombinators<
 export function prettyPrint(node: TSESTree.Node): string {
   return generate(node as any);
 }
+
+export const contextUtils = <
+  TMessageIds extends string,
+  TOptions extends readonly unknown[]
+>(
+  context: TSESLint.RuleContext<TMessageIds, TOptions>
+) => {
+  function findModuleImport(
+    moduleName: string
+  ): option.Option<TSESTree.ImportDeclaration> {
+    let importNode: option.Option<TSESTree.ImportDeclaration> = option.none;
+    estraverse.traverse(context.getSourceCode().ast as any, {
+      enter(node) {
+        if (
+          node.type === "ImportDeclaration" &&
+          ASTUtils.getStringIfConstant(node.source as TSESTree.Literal) ===
+            moduleName
+        ) {
+          importNode = option.some(node as TSESTree.ImportDeclaration);
+        }
+      },
+      keys: tsVisitorKeys as any,
+    });
+    return importNode;
+  }
+
+  function findLastModuleImport(): option.Option<TSESTree.ImportDeclaration> {
+    let importNode: option.Option<TSESTree.ImportDeclaration> = option.none;
+    estraverse.traverse(context.getSourceCode().ast as any, {
+      enter(node) {
+        if (node.type === "ImportDeclaration") {
+          importNode = option.some(node as TSESTree.ImportDeclaration);
+        }
+      },
+      keys: tsVisitorKeys as any,
+    });
+    return importNode;
+  }
+
+  function addNamedImportIfNeeded(
+    name: string,
+    moduleName: string,
+    fixer: TSESLint.RuleFixer
+  ): Array<TSESLint.RuleFix> {
+    return pipe(
+      findModuleImport(moduleName),
+      option.fold(
+        () =>
+          // insert full named import
+          pipe(
+            findLastModuleImport(),
+            option.fold(
+              // no other imports in this file, add the import at the very beginning
+              () => [
+                fixer.insertTextAfterRange(
+                  [0, 0],
+                  `import { ${name} } from "${moduleName}"\n`
+                ),
+              ],
+              (lastImport) =>
+                // other imports founds in this file, insert the import after the last one
+                [
+                  fixer.insertTextAfter(
+                    lastImport,
+                    `\nimport { ${name} } from "${moduleName}"`
+                  ),
+                ]
+            )
+          ),
+        (importDeclaration) =>
+          pipe(
+            importDeclaration.specifiers,
+            array.findFirst(
+              (specifier) =>
+                specifier.type === AST_NODE_TYPES.ImportSpecifier &&
+                specifier.imported.name === name
+            ),
+            option.fold(
+              () =>
+                // insert 'name' in existing module import
+                pipe(
+                  importDeclaration.specifiers,
+                  array.last,
+                  option.fold(
+                    // No specifiers, so this is import {} from 'fp-ts'
+                    // NOTE(gabro): It's an edge case we don't handle for now, so we just do nothing
+                    () => [fixer.insertTextAfterRange([0, 0], "")],
+                    // Insert import specifier, possibly inserting a comma if needed
+                    (lastImportSpecifier) => {
+                      if (
+                        ASTUtils.isCommaToken(
+                          context
+                            .getSourceCode()
+                            .getTokenAfter(lastImportSpecifier)!
+                        )
+                      ) {
+                        return [
+                          fixer.insertTextAfter(
+                            lastImportSpecifier,
+                            ` ${name}`
+                          ),
+                        ];
+                      } else {
+                        return [
+                          fixer.insertTextAfter(
+                            lastImportSpecifier,
+                            `, ${name}`
+                          ),
+                        ];
+                      }
+                    }
+                  )
+                ),
+              () =>
+                // do nothing, 'name' is already imported
+                []
+            )
+          )
+      )
+    );
+  }
+
+  function removeImportDeclaration(
+    node: TSESTree.ImportDeclaration,
+    fixer: RuleFixer
+  ): RuleFix {
+    ASTUtils.LINEBREAK_MATCHER;
+    const nextToken = context.getSourceCode().getTokenAfter(node);
+    if (nextToken?.value.match(ASTUtils.LINEBREAK_MATCHER)) {
+      return fixer.removeRange([node.range[0], nextToken.range[1]]);
+    } else {
+      return fixer.remove(node);
+    }
+  }
+
+  function isIdentifierImportedFrom<
+    TMessageIds extends string,
+    TOptions extends readonly unknown[]
+  >(
+    identifier: TSESTree.Identifier,
+    targetModuleName: string | RegExp,
+    context: TSESLint.RuleContext<TMessageIds, TOptions>
+  ): boolean {
+    const importDef = ASTUtils.findVariable(
+      ASTUtils.getInnermostScope(context.getScope(), identifier),
+      identifier.name
+    )?.defs.find((d) => d.type === "ImportBinding");
+    return !!(
+      importDef?.parent?.type === AST_NODE_TYPES.ImportDeclaration &&
+      importDef.parent.source.value?.toString().match(targetModuleName)
+    );
+  }
+
+  function isFlowExpression(node: TSESTree.CallExpression): boolean {
+    return pipe(
+      node,
+      calleeIdentifier,
+      option.exists(
+        (callee) =>
+          callee.name === "flow" &&
+          isIdentifierImportedFrom(callee, /fp-ts\//, context)
+      )
+    );
+  }
+
+  function isPipeOrFlowExpression(node: TSESTree.CallExpression): boolean {
+    return pipe(
+      node,
+      calleeIdentifier,
+      option.exists(
+        (callee) =>
+          ["pipe", "flow"].includes(callee.name) &&
+          isIdentifierImportedFrom(callee, /fp-ts\//, context)
+      )
+    );
+  }
+
+  function isOnlyUsedAsType(node: TSESTree.ImportClause): boolean {
+    if (node.type === AST_NODE_TYPES.ImportSpecifier) {
+      return pipe(
+        ASTUtils.findVariable(context.getScope(), node.imported.name),
+        option.fromNullable,
+        option.exists((variable) => {
+          const nonImportReferences = pipe(
+            variable.references,
+            array.filter(
+              (ref) =>
+                ref.identifier.parent?.type !== AST_NODE_TYPES.ImportDeclaration
+            )
+          );
+          return pipe(
+            nonImportReferences,
+            array.every(
+              (ref) =>
+                ref.identifier.parent?.type === AST_NODE_TYPES.TSTypeReference
+            )
+          );
+        })
+      );
+    }
+    return false;
+  }
+
+  return {
+    addNamedImportIfNeeded,
+    removeImportDeclaration,
+    isFlowExpression,
+    isPipeOrFlowExpression,
+    isIdentifierImportedFrom,
+    isOnlyUsedAsType,
+  };
+};

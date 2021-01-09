@@ -1,5 +1,5 @@
 import { TSESLint } from "@typescript-eslint/experimental-utils";
-import { isFlowExpression } from "../utils";
+import { contextUtils } from "../utils";
 
 const messages = {
   redundantFlow: "flow can be removed because it takes only one argument",
@@ -17,9 +17,11 @@ export const meta: TSESLint.RuleMetaData<MessageIds> = {
 export function create(
   context: TSESLint.RuleContext<MessageIds, []>
 ): TSESLint.RuleListener {
+  const { isFlowExpression } = contextUtils(context);
+
   return {
     CallExpression(node) {
-      if (node.arguments.length === 1 && isFlowExpression(node, context)) {
+      if (node.arguments.length === 1 && isFlowExpression(node)) {
         context.report({
           node,
           messageId: "redundantFlow",

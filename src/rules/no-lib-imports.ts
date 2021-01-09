@@ -1,4 +1,4 @@
-import { ASTUtils, TSESLint } from "@typescript-eslint/experimental-utils";
+import { TSESLint } from "@typescript-eslint/experimental-utils";
 
 const messages = {
   importNotAllowed:
@@ -18,7 +18,7 @@ export function create(
 ): TSESLint.RuleListener {
   return {
     ImportDeclaration(node) {
-      const sourceValue = ASTUtils.getStringIfConstant(node.source);
+      const sourceValue = node.source.value?.toString();
       if (sourceValue) {
         const forbiddenImportPattern = /^fp-ts\/lib\//;
 
