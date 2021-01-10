@@ -1,4 +1,4 @@
-import * as rule from "../../src/rules/no-redundant-flow";
+import rule from "../../src/rules/no-redundant-flow";
 import { ESLintUtils } from "@typescript-eslint/experimental-utils";
 
 const ruleTester = new ESLintUtils.RuleTester({

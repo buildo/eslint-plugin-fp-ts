@@ -1,4 +1,4 @@
-import * as rule from "../../src/rules/prefer-chain";
+import rule from "../../src/rules/prefer-chain";
 import { ESLintUtils } from "@typescript-eslint/experimental-utils";
 
 const ruleTester = new ESLintUtils.RuleTester({
