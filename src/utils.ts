@@ -156,6 +156,10 @@ export function prettyPrint(node: TSESTree.Node): string {
   return generate(node as any);
 }
 
+export function inferIndent(node: TSESTree.Node): string {
+  return new Array(node.loc.start.column + 1).join(" ");
+}
+
 export const contextUtils = <
   TMessageIds extends string,
   TOptions extends readonly unknown[]
