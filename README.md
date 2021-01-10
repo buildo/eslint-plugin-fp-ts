@@ -40,14 +40,16 @@ and enable the rules you want, for example
   'fp-ts/lib' (autofixable 🔧)
 - [fp-ts/no-pipeable](docs/rules/no-pipeable.md): Disallow imports from the
   'pipeable' module (autofixable 🔧)
-- [fp-ts/prefer-traverse](docs/rules/prefer-traverse.md): Replace map + sequence
-  with traverse (autofixable 🔧)
-- [fp-ts/no-redundant-flow](docs/rules/no-redundant-flow.md): Remove redundant
-  uses of flow (autofixable 🔧)
-- [fp-ts/prefer-chain](docs/rules/prefer-chain.md): Replace map + flatten with
-  chain (autofixable 🔧)
 - [fp-ts/no-module-imports](docs/rules/no-module-imports.md): Disallow imports
   from fp-ts modules (autofixable 🔧)
+- [fp-ts/no-redundant-flow](docs/rules/no-redundant-flow.md): Remove redundant
+  uses of flow (autofixable 🔧)
+- [fp-ts/prefer-traverse](docs/rules/prefer-traverse.md): Replace map + sequence
+  with traverse (autofixable 🔧)
+- [fp-ts/prefer-chain](docs/rules/prefer-chain.md): Replace map + flatten with
+  chain (autofixable 🔧)
+- [fp-ts/prefer-bimap](docs/rules/prefer-bimap.md): Replace map + mapLeft with
+  bimap (autofixable 🔧)
 
 ## Configurations
 
