@@ -2,15 +2,15 @@ import { array, record, semigroup } from "fp-ts";
 import { pipe } from "fp-ts/function";
 
 const potentialErrors = {
-  "no-lib-imports": require("./rules/no-lib-imports"),
-  "no-pipeable": require("./rules/no-pipeable"),
+  "no-lib-imports": require("./rules/no-lib-imports").default,
+  "no-pipeable": require("./rules/no-pipeable").default,
   "no-module-imports": require("./rules/no-module-imports").default,
 };
 
 const suggestions = {
-  "prefer-traverse": require("./rules/prefer-traverse"),
-  "no-redundant-flow": require("./rules/no-redundant-flow"),
-  "prefer-chain": require("./rules/prefer-chain"),
+  "prefer-traverse": require("./rules/prefer-traverse").default,
+  "no-redundant-flow": require("./rules/no-redundant-flow").default,
+  "prefer-chain": require("./rules/prefer-chain").default,
 };
 
 export const rules = {
