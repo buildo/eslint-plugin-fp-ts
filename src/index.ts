@@ -4,7 +4,7 @@ import { pipe } from "fp-ts/function";
 const potentialErrors = {
   "no-lib-imports": require("./rules/no-lib-imports"),
   "no-pipeable": require("./rules/no-pipeable"),
-  "no-module-imports": require("./rules/no-module-imports"),
+  "no-module-imports": require("./rules/no-module-imports").default,
 };
 
 const suggestions = {
