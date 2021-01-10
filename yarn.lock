@@ -1398,12 +1398,13 @@ escodegen@^1.14.1:
     source-map "~0.6.1"
 
 eslint-plugin-fp-ts@^0.1.8:
-  version "0.1.8"
-  resolved "https://registry.yarnpkg.com/eslint-plugin-fp-ts/-/eslint-plugin-fp-ts-0.1.8.tgz#920b071efc3ff76405133ab8ace60dc882686cc9"
-  integrity sha512-Lw1mm5yiDNpOci7hHK5XPnapSvGd7N6Y76LB82jqWa9Rus3IOO8vnYY2xz/oZODmcaFfRaqNrCVsTkwKBR/n8w==
+  version "0.1.11"
+  resolved "https://registry.yarnpkg.com/eslint-plugin-fp-ts/-/eslint-plugin-fp-ts-0.1.11.tgz#d4705362305830927b6f72032d6eaca363fb312b"
+  integrity sha512-XKFQO2cj7FMQ12MWQyQQWQYO9R4+FgvrcdAbRorVG8M4hcb1XI9VtnQeDhON5WTHXMg0PISO8DgQdMSdnZNwKg==
   dependencies:
     "@typescript-eslint/experimental-utils" "^4.11.1"
     astring "^1.4.3"
+    estraverse "^5.2.0"
     fp-ts "^2.9.3"
 
 eslint-scope@^5.0.0, eslint-scope@^5.1.1:
