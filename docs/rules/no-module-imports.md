@@ -12,11 +12,18 @@ command line.
 
 Possible configurations:
 
-- `"always"`: disallow importing any member from a module. This is the default
-  value.
-- `"allow-types"`: allow importing type members from a module.
+_`allowTypes`_ (boolean)
 
-Example of **incorrect** code for this rule, when configured as `always`:
+- `false`: disallow importing any member from a module. This is the default
+  value.
+- `true`: allow importing type members from a module.
+
+_`allowedModules`_ (string[])
+
+List of allowed modules, defaults to `["function", "pipeable"]`.
+
+Example of **incorrect** code for this rule, when configured with
+`{ allowTypes: false }`
 
 ```ts
 import { Option, some } from "fp-ts/Option";
@@ -24,15 +31,8 @@ import { Option, some } from "fp-ts/Option";
 const x: Option<number> = some(42);
 ```
 
-Example of **incorrect** code for this rule, when configured as `allow-types`:
-
-```ts
-import { some } from "fp-ts/Option";
-
-const x = some(42);
-```
-
-Example of **correct** code for this rule, when configured as `always`:
+Example of **correct** code for this rule, when configured with
+`{ allowTypes: false }`:
 
 ```ts
 import { option } from "fp-ts";
@@ -40,11 +40,21 @@ import { option } from "fp-ts";
 const x: option.Option<number> = option.some(42);
 ```
 
-Example of **correct** code for this rule, when configured as `allow-types`:
+Example of **correct** code for this rule, when configured with
+`{ allowTypes: true }`
 
 ```ts
 import { option } from "fp-ts";
 import { Option } from "fp-ts/Option";
 
 const x: Option<number> = option.some(42);
+```
+
+Example of **correct** code for this rule, when configured with
+`{ allowedModules: ["Option"] }`:
+
+```ts
+import { Option, some } from "fp-ts/Option";
+
+const x: Option<number> = some(42);
 ```

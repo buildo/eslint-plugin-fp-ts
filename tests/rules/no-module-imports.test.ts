@@ -1,4 +1,4 @@
-import * as rule from "../../src/rules/no-module-imports";
+import rule from "../../src/rules/no-module-imports";
 import { ESLintUtils } from "@typescript-eslint/experimental-utils";
 import { stripIndent } from "common-tags";
 
@@ -20,7 +20,13 @@ ruleTester.run("no-module-imports", rule, {
         import { option } from "fp-ts"
         const x: Option<number> = option.some(2)
       `,
-      options: ["allow-types"],
+      options: [{ allowTypes: true }],
+    },
+    {
+      code: stripIndent`
+        import { sequenceS } from "fp-ts/Apply"
+      `,
+      options: [{ allowedModules: ["Apply"] }],
     },
   ],
   invalid: [
@@ -28,24 +34,19 @@ ruleTester.run("no-module-imports", rule, {
       code: stripIndent`
         import { option } from "fp-ts"
         import { Option } from "fp-ts/Option"
+
         const x: Option<number> = option.some(2)
       `,
-      options: ["always"],
       errors: [
         {
           messageId: "importNotAllowed",
-          suggestions: [
-            {
-              messageId: "convertImportToIndex",
-              output: stripIndent`
-                import { option } from "fp-ts"
-
-                const x: option.Option<number> = option.some(2)
-              `,
-            },
-          ],
         },
       ],
+      output: stripIndent`
+        import { option } from "fp-ts"
+
+        const x: option.Option<number> = option.some(2)
+      `,
     },
     {
       code: stripIndent`
@@ -54,24 +55,19 @@ ruleTester.run("no-module-imports", rule, {
         const x: Option<number> = some(2)
         const y: Option<number> = none
       `,
-      options: ["allow-types"],
+      options: [{ allowTypes: true }],
       errors: [
         {
           messageId: "importValuesNotAllowed",
-          suggestions: [
-            {
-              messageId: "convertImportValuesToIndex",
-              output: stripIndent`
-                import {  Option,  } from "fp-ts/Option"
-                import { option } from "fp-ts"
-
-                const x: Option<number> = option.some(2)
-                const y: Option<number> = option.none
-              `,
-            },
-          ],
         },
       ],
+      output: stripIndent`
+        import {  Option,  } from "fp-ts/Option"
+        import { option } from "fp-ts"
+
+        const x: Option<number> = option.some(2)
+        const y: Option<number> = option.none
+      `,
     },
     {
       code: stripIndent`
@@ -82,19 +78,13 @@ ruleTester.run("no-module-imports", rule, {
       errors: [
         {
           messageId: "importNotAllowed",
-          suggestions: [
-            {
-              messageId: "convertImportToIndex",
-              output: [
-                "",
-                'import { option } from "fp-ts"',
-                "",
-                "const x = option.some(2)",
-              ].join("\n"),
-            },
-          ],
         },
       ],
+      output: stripIndent`
+        import { option } from "fp-ts"
+
+        const x = option.some(2)
+      `,
     },
     {
       code: stripIndent`
@@ -105,19 +95,13 @@ ruleTester.run("no-module-imports", rule, {
       errors: [
         {
           messageId: "importNotAllowed",
-          suggestions: [
-            {
-              messageId: "convertImportToIndex",
-              output: [
-                "",
-                'import { option } from "fp-ts"',
-                "",
-                "const v = option.some(42)",
-              ].join("\n"),
-            },
-          ],
         },
       ],
+      output: stripIndent`
+        import { option } from "fp-ts"
+
+        const v = option.some(42)
+      `,
     },
     {
       code: stripIndent`
@@ -131,21 +115,15 @@ ruleTester.run("no-module-imports", rule, {
       errors: [
         {
           messageId: "importNotAllowed",
-          suggestions: [
-            {
-              messageId: "convertImportToIndex",
-              output: stripIndent`
-                import { array, option } from "fp-ts"
-
-
-                const v = option.some(42)
-                const y = option.none
-                const z = option.fromNullable(null)
-              `,
-            },
-          ],
         },
       ],
+      output: stripIndent`
+        import { array, option } from "fp-ts"
+
+        const v = option.some(42)
+        const y = option.none
+        const z = option.fromNullable(null)
+      `,
     },
   ],
 });

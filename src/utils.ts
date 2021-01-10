@@ -3,6 +3,7 @@ import {
   ASTUtils,
   AST_NODE_TYPES,
   TSESTree,
+  ESLintUtils,
 } from "@typescript-eslint/experimental-utils";
 import { generate } from "astring";
 import { visitorKeys as tsVisitorKeys } from "@typescript-eslint/typescript-estree";
@@ -14,6 +15,13 @@ import {
   RuleFix,
   RuleFixer,
 } from "@typescript-eslint/experimental-utils/dist/ts-eslint";
+
+const version = require("../package.json").version;
+
+export const createRule = ESLintUtils.RuleCreator(
+  (name) =>
+    `https://github.com/buildo/eslint-plugin-fp-ts/blob/v${version}/docs/rules/${name}.md`
+);
 
 export function calleeIdentifier(
   node:
@@ -209,9 +217,9 @@ export const contextUtils = <
               (lastImport) =>
                 // other imports founds in this file, insert the import after the last one
                 [
-                  fixer.insertTextAfter(
-                    lastImport,
-                    `\nimport { ${name} } from "${moduleName}"`
+                  fixer.insertTextAfterRange(
+                    [lastImport.range[0], lastImport.range[1] + 1],
+                    `import { ${name} } from "${moduleName}"\n`
                   ),
                 ]
             )
@@ -273,10 +281,16 @@ export const contextUtils = <
     node: TSESTree.ImportDeclaration,
     fixer: RuleFixer
   ): RuleFix {
-    ASTUtils.LINEBREAK_MATCHER;
     const nextToken = context.getSourceCode().getTokenAfter(node);
-    if (nextToken?.value.match(ASTUtils.LINEBREAK_MATCHER)) {
-      return fixer.removeRange([node.range[0], nextToken.range[1]]);
+
+    if (nextToken && nextToken.loc.start.line > node.loc.start.line) {
+      return fixer.removeRange([
+        node.range[0],
+        context.getSourceCode().getIndexFromLoc({
+          line: node.loc.start.line + 1,
+          column: 0,
+        }),
+      ]);
     } else {
       return fixer.remove(node);
     }
