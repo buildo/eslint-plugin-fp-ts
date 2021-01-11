@@ -1,4 +1,4 @@
-# Replace map + mapLeft with bimap (fp-ts/prefer-chain)
+# Replace map + mapLeft with bimap (fp-ts/prefer-bimap)
 
 Suggest replacing the combination of `map` followed by `mapLeft` (or vice-versa)
 with `bimap`.
