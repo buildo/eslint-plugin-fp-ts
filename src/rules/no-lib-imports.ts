@@ -20,28 +20,29 @@ export default createRule({
   create(context) {
     return {
       ImportDeclaration(node) {
-        const sourceValue = node.source.value?.toString();
-        if (sourceValue) {
-          const forbiddenImportPattern = /^fp-ts\/lib\//;
+        const sourceValue = node.source.raw;
+        const openQuote = /^['"]{1}/;
+        const forbiddenImportPattern = /fp-ts\/lib\//;
 
+        if (
+          sourceValue.match(openQuote.source + forbiddenImportPattern.source)
+        ) {
           const fixedImportSource = sourceValue.replace(
             forbiddenImportPattern,
             "fp-ts/"
           );
 
-          if (sourceValue.match(forbiddenImportPattern)) {
-            context.report({
-              node: node.source,
-              messageId: "importNotAllowed",
-              data: {
-                detected: node.source.value,
-                fixed: fixedImportSource,
-              },
-              fix(fixer) {
-                return fixer.replaceText(node.source, `"${fixedImportSource}"`);
-              },
-            });
-          }
+          context.report({
+            node: node.source,
+            messageId: "importNotAllowed",
+            data: {
+              detected: node.source.value,
+              fixed: fixedImportSource,
+            },
+            fix(fixer) {
+              return fixer.replaceText(node.source, fixedImportSource);
+            },
+          });
         }
       },
     };
