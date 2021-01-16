@@ -160,6 +160,11 @@ export function inferIndent(node: TSESTree.Node): string {
   return new Array(node.loc.start.column + 1).join(" ");
 }
 
+type Quote = "'" | '"';
+export function inferQuote(node: TSESTree.Literal): Quote {
+  return node.raw[0] === "'" ? "'" : '"';
+}
+
 export const contextUtils = <
   TMessageIds extends string,
   TOptions extends readonly unknown[]
@@ -201,6 +206,7 @@ export const contextUtils = <
   function addNamedImportIfNeeded(
     name: string,
     moduleName: string,
+    quote: Quote,
     fixer: TSESLint.RuleFixer
   ): Array<TSESLint.RuleFix> {
     return pipe(
@@ -215,7 +221,7 @@ export const contextUtils = <
               () => [
                 fixer.insertTextAfterRange(
                   [0, 0],
-                  `import { ${name} } from "${moduleName}"\n`
+                  `import { ${name} } from ${quote}${moduleName}${quote}\n`
                 ),
               ],
               (lastImport) =>
@@ -223,7 +229,7 @@ export const contextUtils = <
                 [
                   fixer.insertTextAfterRange(
                     [lastImport.range[0], lastImport.range[1] + 1],
-                    `import { ${name} } from "${moduleName}"\n`
+                    `import { ${name} } from ${quote}${moduleName}${quote}\n`
                   ),
                 ]
             )
