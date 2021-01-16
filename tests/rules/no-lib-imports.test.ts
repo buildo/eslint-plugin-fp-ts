@@ -11,7 +11,11 @@ const ruleTester = new ESLintUtils.RuleTester({
 ruleTester.run("no-lib-imports", rule, {
   valid: [
     'import { Option } from "fp-ts/Option"',
+    "import { Option } from 'fp-ts/Option'",
     'import { option } from "fp-ts"',
+    "import { option } from 'fp-ts'",
+    'import { option } from "library/fp-ts/lib"',
+    "import { option } from 'library/fp-ts/lib'",
   ],
   invalid: [
     {
@@ -22,6 +26,15 @@ ruleTester.run("no-lib-imports", rule, {
         },
       ],
       output: 'import { Option } from "fp-ts/Option"',
+    },
+    {
+      code: "import { Option } from 'fp-ts/lib/Option'",
+      errors: [
+        {
+          messageId: "importNotAllowed",
+        },
+      ],
+      output: "import { Option } from 'fp-ts/Option'",
     },
   ],
 });
