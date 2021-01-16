@@ -4,7 +4,7 @@ import {
 } from "@typescript-eslint/experimental-utils";
 import { array } from "fp-ts";
 import { pipe } from "fp-ts/function";
-import { contextUtils, createRule } from "../utils";
+import { contextUtils, createRule, inferQuote } from "../utils";
 
 type Options = [{ allowTypes?: boolean; allowedModules?: string[] }];
 
@@ -65,7 +65,7 @@ export default createRule<Options, MessageIds>({
 
     return {
       ImportDeclaration(node) {
-        const sourceValue = node.source.value?.toString();
+        const sourceValue = ASTUtils.getStringIfConstant(node.source);
         if (sourceValue) {
           const forbiddenImportPattern = /^fp-ts\/(.+)/;
           const matches = sourceValue.match(forbiddenImportPattern);
@@ -152,7 +152,12 @@ export default createRule<Options, MessageIds>({
 
                   return [
                     ...importFixes,
-                    ...addNamedImportIfNeeded(indexExport, "fp-ts", fixer),
+                    ...addNamedImportIfNeeded(
+                      indexExport,
+                      "fp-ts",
+                      inferQuote(node.source),
+                      fixer
+                    ),
                     ...referencesFixes,
                   ];
                 },

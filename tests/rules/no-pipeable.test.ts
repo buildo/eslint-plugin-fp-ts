@@ -33,6 +33,15 @@ ruleTester.run("no-pipeable", rule, {
       output: 'import { pipe } from "fp-ts/function"',
     },
     {
+      code: "import { pipe } from 'fp-ts/pipeable'",
+      errors: [
+        {
+          messageId: "importPipeFromFunction",
+        },
+      ],
+      output: "import { pipe } from 'fp-ts/function'",
+    },
+    {
       code: 'import { pipeable } from "fp-ts/pipeable"',
       errors: [
         {

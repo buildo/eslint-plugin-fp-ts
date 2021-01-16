@@ -125,5 +125,22 @@ ruleTester.run("no-module-imports", rule, {
         const z = option.fromNullable(null)
       `,
     },
+    {
+      code: stripIndent`
+        import { some } from 'fp-ts/Option'
+
+        const v = some(42)
+      `,
+      errors: [
+        {
+          messageId: "importNotAllowed",
+        },
+      ],
+      output: stripIndent`
+        import { option } from 'fp-ts'
+
+        const v = option.some(42)
+      `,
+    },
   ],
 });

@@ -1,4 +1,5 @@
-import { createRule } from "../utils";
+import { ASTUtils } from "@typescript-eslint/experimental-utils";
+import { createRule, inferQuote } from "../utils";
 
 export default createRule({
   name: "no-lib-imports",
@@ -20,18 +21,14 @@ export default createRule({
   create(context) {
     return {
       ImportDeclaration(node) {
-        const sourceValue = node.source.raw;
-        const openQuote = /^['"]{1}/;
-        const forbiddenImportPattern = /fp-ts\/lib\//;
+        const sourceValue = ASTUtils.getStringIfConstant(node.source);
+        const forbiddenImportPattern = /^fp-ts\/lib\//;
 
-        if (
-          sourceValue.match(openQuote.source + forbiddenImportPattern.source)
-        ) {
+        if (sourceValue?.match(forbiddenImportPattern.source)) {
           const fixedImportSource = sourceValue.replace(
             forbiddenImportPattern,
             "fp-ts/"
           );
-
           context.report({
             node: node.source,
             messageId: "importNotAllowed",
@@ -40,7 +37,12 @@ export default createRule({
               fixed: fixedImportSource,
             },
             fix(fixer) {
-              return fixer.replaceText(node.source, fixedImportSource);
+              const quote = inferQuote(node.source);
+
+              return fixer.replaceText(
+                node.source,
+                `${quote}${fixedImportSource}${quote}`
+              );
             },
           });
         }
