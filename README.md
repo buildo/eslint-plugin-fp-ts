@@ -1,3 +1,7 @@
+![badge](https://concourse.our.buildo.io/api/v1/teams/buildo/pipelines/eslint-plugin-fp-ts/badge)
+![npm](https://img.shields.io/npm/dm/eslint-plugin-fp-ts)
+![npm](https://img.shields.io/npm/v/eslint-plugin-fp-ts)
+
 # eslint-plugin-fp-ts
 
 A collection of ESLint rules for [fp-ts](https://github.com/gcanti/fp-ts)
