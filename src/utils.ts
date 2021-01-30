@@ -5,7 +5,7 @@ import {
   TSESTree,
   ESLintUtils,
 } from "@typescript-eslint/experimental-utils";
-import { generate } from "astring";
+import * as recast from "recast";
 import { visitorKeys as tsVisitorKeys } from "@typescript-eslint/typescript-estree";
 import { array, option, apply } from "fp-ts";
 import { pipe } from "fp-ts/function";
@@ -153,7 +153,7 @@ export function getAdjacentCombinators<
 }
 
 export function prettyPrint(node: TSESTree.Node): string {
-  return generate(node as any);
+  return recast.prettyPrint(node).code;
 }
 
 export function inferIndent(node: TSESTree.Node): string {
