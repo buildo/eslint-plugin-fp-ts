@@ -19,6 +19,18 @@ ruleTester.run("prefer-bimap", rule, {
         )
       `,
     },
+    {
+      code: stripIndent`
+        import { either } from "fp-ts"
+        import { pipe } from "fp-ts/function"
+
+        pipe(
+          getResult(),
+          either.mapLeft(e => e.toString()),
+          either.mapLeft(e => e.toString()),
+        )
+      `,
+    },
   ],
   invalid: [
     {
