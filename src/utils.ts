@@ -77,6 +77,14 @@ export function getAdjacentCombinators<
   combinator2: CombinatorQuery<N2["type"]>,
   requireMatchingPrefix: boolean
 ): option.Option<[N1, N2]> {
+  function matches(value: string, stringOrRegex: string | RegExp): boolean {
+    if (typeof stringOrRegex === "string") {
+      return value === stringOrRegex;
+    } else {
+      return !!value.match(stringOrRegex);
+    }
+  }
+
   const firstCombinatorIndex = pipeOrFlowExpression.arguments.findIndex(
     (a, index) => {
       if (
@@ -92,8 +100,8 @@ export function getAdjacentCombinators<
             }),
             option.exists(
               ({ idA, idB }) =>
-                !!idA.name.match(combinator1.name) &&
-                !!idB.name.match(combinator2.name)
+                matches(idA.name, combinator1.name) &&
+                matches(idB.name, combinator2.name)
             )
           );
         }
