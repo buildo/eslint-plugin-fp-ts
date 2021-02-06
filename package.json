@@ -17,6 +17,7 @@
   "scripts": {
     "preversion": "yarn lint && yarn test && yarn build",
     "build": "rimraf lib && yarn tsc",
+    "pretest": "yarn --cwd tests/fixtures/fp-ts-project install",
     "test": "jest",
     "lint": "eslint src/**/*.ts"
   },
