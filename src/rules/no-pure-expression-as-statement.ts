@@ -2,12 +2,6 @@ import { array, option } from "fp-ts";
 import { constVoid, pipe } from "fp-ts/function";
 import { contextUtils, createRule } from "../utils";
 
-declare module "typescript" {
-  interface Program {
-    sourceFileToPackageName: ESMap<string, string>;
-  }
-}
-
 export default createRule({
   name: "no-pure-expression-as-statement",
   meta: {

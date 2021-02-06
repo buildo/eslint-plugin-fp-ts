@@ -29,6 +29,12 @@ export const configs = {
       "fp-ts/no-pipeable": "error",
     },
   },
+  "recommended-requiring-type-checking": {
+    plugins: ["fp-ts"],
+    rules: {
+      "fp-ts/no-pure-expression-as-statement": "error",
+    },
+  },
   all: {
     plugins: ["fp-ts"],
     rules: {
