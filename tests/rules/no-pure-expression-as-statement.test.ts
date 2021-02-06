@@ -61,6 +61,31 @@ ruleTester.run("no-pure-expression-as-statement", rule, {
       errors: [
         {
           messageId: "pureExpressionInStatementPosition",
+          data: {
+            dataType: "Task",
+          },
+          suggestions: [
+            {
+              messageId: "addReturn",
+              output: stripIndent`
+                import { task } from "fp-ts"
+
+                function woops() {
+                  return task.of(42)
+                }
+              `,
+            },
+            {
+              messageId: "runExpression",
+              output: stripIndent`
+                import { task } from "fp-ts"
+
+                function woops() {
+                  task.of(42)()
+                }
+              `,
+            },
+          ],
         },
       ],
     },
@@ -76,6 +101,33 @@ ruleTester.run("no-pure-expression-as-statement", rule, {
       errors: [
         {
           messageId: "pureExpressionInStatementPosition",
+          data: {
+            dataType: "Task",
+          },
+          suggestions: [
+            {
+              messageId: "addReturn",
+              output: stripIndent`
+                import { task } from "fp-ts"
+
+                function woops() {
+                  const x = task.of(42)
+                  return x
+                }
+              `,
+            },
+            {
+              messageId: "runExpression",
+              output: stripIndent`
+                import { task } from "fp-ts"
+
+                function woops() {
+                  const x = task.of(42)
+                  x()
+                }
+              `,
+            },
+          ],
         },
       ],
     },
@@ -90,6 +142,31 @@ ruleTester.run("no-pure-expression-as-statement", rule, {
       errors: [
         {
           messageId: "pureExpressionInStatementPosition",
+          data: {
+            dataType: "TaskEither",
+          },
+          suggestions: [
+            {
+              messageId: "addReturn",
+              output: stripIndent`
+                import { taskEither } from "fp-ts"
+
+                function woops() {
+                  return taskEither.of(42)
+                }
+              `,
+            },
+            {
+              messageId: "runExpression",
+              output: stripIndent`
+                import { taskEither } from "fp-ts"
+
+                function woops() {
+                  taskEither.of(42)()
+                }
+              `,
+            },
+          ],
         },
       ],
     },
@@ -104,6 +181,31 @@ ruleTester.run("no-pure-expression-as-statement", rule, {
       errors: [
         {
           messageId: "pureExpressionInStatementPosition",
+          data: {
+            dataType: "IO",
+          },
+          suggestions: [
+            {
+              messageId: "addReturn",
+              output: stripIndent`
+                import { io } from "fp-ts"
+
+                function woops() {
+                  return io.of(42)
+                }
+              `,
+            },
+            {
+              messageId: "runExpression",
+              output: stripIndent`
+                import { io } from "fp-ts"
+
+                function woops() {
+                  io.of(42)()
+                }
+              `,
+            },
+          ],
         },
       ],
     },
