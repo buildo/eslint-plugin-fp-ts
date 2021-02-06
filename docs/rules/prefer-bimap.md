@@ -3,8 +3,7 @@
 Suggest replacing the combination of `map` followed by `mapLeft` (or vice-versa)
 with `bimap`.
 
-**Fixable**: This rule is automatically fixable using the `--fix` flag on the
-command line.
+**💡 Fixable**: This rule provides in-editor suggested fixes.
 
 ## Rule Details
 

@@ -3,8 +3,7 @@
 Suggest removing `flow` when it only has one argument. This can happen after a
 refactoring that removed some combinators from a flow expression.
 
-**Fixable**: This rule is automatically fixable using the `--fix` flag on the
-command line.
+**💡 Fixable**: This rule provides in-editor suggested fixes.
 
 ## Rule Details
 

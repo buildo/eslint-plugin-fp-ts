@@ -6,7 +6,7 @@ without the `lib` prefix, which improves ergonomics and tree-shakeability.
 > Note: this change was introduced in fp-ts 2.8.0. If you are using an older
 > version, do not enable this rule
 
-**Fixable**: This rule is automatically fixable using the `--fix` flag on the
+**🔧 Fixable**: This rule is automatically fixable using the `--fix` flag on the
 command line.
 
 ## Rule Details

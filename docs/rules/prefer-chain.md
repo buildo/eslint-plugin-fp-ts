@@ -3,8 +3,7 @@
 Suggest replacing the combination of `map` (or `mapWithIndex`) followed by
 `flatten` with `chain` (or `chainWithIndex`).
 
-**Fixable**: This rule is automatically fixable using the `--fix` flag on the
-command line.
+**💡 Fixable**: This rule provides in-editor suggested fixes.
 
 ## Rule Details
 
