@@ -15,6 +15,14 @@ import {
   RuleFix,
   RuleFixer,
 } from "@typescript-eslint/experimental-utils/dist/ts-eslint";
+import ts from "typescript";
+import { Option } from "fp-ts/Option";
+
+declare module "typescript" {
+  interface Program {
+    sourceFileToPackageName: ESMap<string, string>;
+  }
+}
 
 const version = require("../package.json").version;
 
@@ -382,6 +390,35 @@ export const contextUtils = <
     return false;
   }
 
+  function typeOfNode(node: TSESTree.Node): Option<ts.Type> {
+    return pipe(
+      context.parserServices,
+      option.fromNullable,
+      option.bindTo("parserServices"),
+      option.bind("typeChecker", ({ parserServices }) =>
+        pipe(parserServices.program.getTypeChecker(), option.fromNullable)
+      ),
+      option.map(({ parserServices, typeChecker }) => {
+        const tsNode = parserServices.esTreeNodeToTSNodeMap.get(node);
+        return typeChecker.getTypeAtLocation(tsNode);
+      })
+    );
+  }
+
+  function isFromFpTs(type: ts.Type): boolean {
+    const program = context.parserServices?.program;
+    const declaredFileName = type.symbol
+      ?.getDeclarations()?.[0]
+      ?.getSourceFile().fileName;
+    if (declaredFileName && program) {
+      const packageName = program.sourceFileToPackageName.get(
+        declaredFileName.toLowerCase()
+      );
+      return packageName === "fp-ts";
+    }
+    return false;
+  }
+
   return {
     addNamedImportIfNeeded,
     removeImportDeclaration,
@@ -389,5 +426,7 @@ export const contextUtils = <
     isPipeOrFlowExpression,
     isIdentifierImportedFrom,
     isOnlyUsedAsType,
+    typeOfNode,
+    isFromFpTs,
   };
 };

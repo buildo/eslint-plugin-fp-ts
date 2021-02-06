@@ -5,6 +5,8 @@ const potentialErrors = {
   "no-lib-imports": require("./rules/no-lib-imports").default,
   "no-pipeable": require("./rules/no-pipeable").default,
   "no-module-imports": require("./rules/no-module-imports").default,
+  "no-pure-expression-as-statement": require("./rules/no-pure-expression-as-statement")
+    .default,
 };
 
 const suggestions = {
