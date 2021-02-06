@@ -407,9 +407,15 @@ export const contextUtils = <
 
   function isFromFpTs(type: ts.Type): boolean {
     const program = context.parserServices?.program;
+    if (type.isUnion()) {
+      const allFromFpTs = pipe(type.types, array.every(isFromFpTs));
+      return allFromFpTs;
+    }
+
     const declaredFileName = type.symbol
       ?.getDeclarations()?.[0]
       ?.getSourceFile().fileName;
+
     if (declaredFileName && program) {
       const packageName = program.sourceFileToPackageName.get(
         declaredFileName.toLowerCase()

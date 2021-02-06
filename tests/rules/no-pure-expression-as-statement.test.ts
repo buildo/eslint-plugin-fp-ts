@@ -24,7 +24,6 @@ ruleTester.run("no-pure-expression-as-statement", rule, {
     {
       code: stripIndent`
         import { task } from "fp-ts"
-
         function ok() {
           return task.of(42)
         }
@@ -33,7 +32,6 @@ ruleTester.run("no-pure-expression-as-statement", rule, {
     {
       code: stripIndent`
         import { task } from "fp-ts"
-
         function ok() {
           task.of(42)()
         }
@@ -42,7 +40,6 @@ ruleTester.run("no-pure-expression-as-statement", rule, {
     {
       code: stripIndent`
         import { io } from "fp-ts"
-
         function ok() {
           io.of(42)()
         }
@@ -202,6 +199,66 @@ ruleTester.run("no-pure-expression-as-statement", rule, {
 
                 function woops() {
                   io.of(42)()
+                }
+              `,
+            },
+          ],
+        },
+      ],
+    },
+    {
+      code: stripIndent`
+        import { task, taskEither } from "fp-ts"
+
+        function f(n: number) {
+          if (n > 1) {
+            return taskEither.of("foo")
+          }
+          return task.of(42)
+        }
+
+        function woops() {
+          f(2)
+        }
+      `,
+      errors: [
+        {
+          messageId: "pureExpressionInStatementPosition",
+          data: {
+            dataType: "TaskEither",
+          },
+          suggestions: [
+            {
+              messageId: "addReturn",
+              output: stripIndent`
+                import { task, taskEither } from "fp-ts"
+
+                function f(n: number) {
+                  if (n > 1) {
+                    return taskEither.of("foo")
+                  }
+                  return task.of(42)
+                }
+
+                function woops() {
+                  return f(2)
+                }
+              `,
+            },
+            {
+              messageId: "runExpression",
+              output: stripIndent`
+                import { task, taskEither } from "fp-ts"
+
+                function f(n: number) {
+                  if (n > 1) {
+                    return taskEither.of("foo")
+                  }
+                  return task.of(42)
+                }
+
+                function woops() {
+                  f(2)()
                 }
               `,
             },
