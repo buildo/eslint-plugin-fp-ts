@@ -27,6 +27,10 @@ declare module "typescript" {
     getContextualTypeForJsxAttribute(
       attribute: JsxAttribute | JsxSpreadAttribute
     ): Type | undefined;
+    getContextualTypeForArgumentAtIndex(
+      nodeIn: Expression,
+      argIndex: number
+    ): Type | undefined;
   }
 }
 

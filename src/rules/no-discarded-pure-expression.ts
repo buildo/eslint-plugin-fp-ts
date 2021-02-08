@@ -1,8 +1,9 @@
 import { ParserServices } from "@typescript-eslint/experimental-utils";
 import { array, option, readonlyArray } from "fp-ts";
 import { constVoid, pipe } from "fp-ts/function";
+import { Option } from "fp-ts/Option";
 import ts from "typescript";
-import { contextUtils, createRule } from "../utils";
+import { contextUtils, createRule, prettyPrint } from "../utils";
 
 export default createRule({
   name: "no-discarded-pure-expression",
@@ -20,8 +21,10 @@ export default createRule({
         "'{{dataType}}' is pure, so this expression does nothing in statement position. Did you forget to return it or run it?",
       addReturn: "return the expression",
       runExpression: "run the expression",
-      discardedDataType:
+      discardedDataTypeJsx:
         "'{{jsxAttributeName}}' expects a function returning '{{expectedReturnType}}' but the expression returns a '{{dataType}}'. Did you forget to run the expression?",
+      discardedDataTypeArgument:
+        "The expression returns a '{{dataType}}', but the function '{{functionName}}' expects a function returning '{{expectedReturnType}}'. Did you forget to run the expression?",
     },
   },
   defaultOptions: [],
@@ -35,6 +38,28 @@ export default createRule({
         pureDataPrefixes,
         array.some((prefix) =>
           t.symbol.escapedName.toString().startsWith(prefix)
+        )
+      );
+    }
+
+    function pureDataReturnType(t: ts.Type): Option<ts.Type> {
+      return pipe(
+        t.getCallSignatures(),
+        readonlyArray.map((signature) => signature.getReturnType()),
+        readonlyArray.findFirst(isPureDataType)
+      );
+    }
+
+    function voidOrUknownReturnType(t: ts.Type): Option<ts.Type> {
+      return pipe(
+        t.getCallSignatures(),
+        readonlyArray.map((signature) => signature.getReturnType()),
+        readonlyArray.findFirst(
+          (returnType) =>
+            !!(
+              returnType.flags & ts.TypeFlags.Void ||
+              returnType.flags & ts.TypeFlags.Unknown
+            )
         )
       );
     }
@@ -88,34 +113,13 @@ export default createRule({
               parserServices.esTreeNodeToTSNodeMap.get(node)
             ),
             option.fromNullable,
-            option.filterMap((t) => {
-              const returnTypes = pipe(
-                t.getCallSignatures(),
-                readonlyArray.map((signature) => signature.getReturnType())
-              );
-              return pipe(
-                returnTypes,
-                readonlyArray.findFirst(
-                  (returnType) =>
-                    !!(
-                      returnType.flags & ts.TypeFlags.Void ||
-                      returnType.flags & ts.TypeFlags.Unknown
-                    )
-                )
-              );
-            })
+            option.filterMap(voidOrUknownReturnType)
           );
 
         const argumentWithPureDataTypeReturnType = pipe(
           node,
           typeOfNode,
-          option.filterMap((t) =>
-            pipe(
-              t.getCallSignatures(),
-              readonlyArray.map((signature) => signature.getReturnType()),
-              readonlyArray.findFirst(isPureDataType)
-            )
-          )
+          option.filterMap(pureDataReturnType)
         );
 
         pipe(
@@ -140,7 +144,7 @@ export default createRule({
             }) =>
               context.report({
                 node: node,
-                messageId: "discardedDataType",
+                messageId: "discardedDataTypeJsx",
                 data: {
                   jsxAttributeName: node.name.name,
                   expectedReturnType: (parameterWithVoidOrUknownReturnType as any)
@@ -149,6 +153,50 @@ export default createRule({
                     argumentWithPureDataTypeReturnType.symbol.escapedName,
                 },
               })
+          )
+        );
+      },
+      CallExpression(node) {
+        pipe(
+          node.arguments,
+          array.mapWithIndex((index, argumentNode) =>
+            pipe(
+              option.Do,
+              option.bind("argumentType", () => typeOfNode(argumentNode)),
+              option.bind("parserServices", parserServices),
+              option.bind("typeChecker", ({ parserServices }) =>
+                option.some(parserServices.program.getTypeChecker())
+              ),
+              option.bind(
+                "parameterReturnType",
+                ({ parserServices, typeChecker }) => {
+                  const tsNode = parserServices.esTreeNodeToTSNodeMap.get(node);
+                  return pipe(
+                    typeChecker.getContextualTypeForArgumentAtIndex(
+                      tsNode,
+                      index
+                    ),
+                    option.fromNullable,
+                    option.chain(voidOrUknownReturnType)
+                  );
+                }
+              ),
+              option.bind("argumentReturnType", ({ argumentType }) =>
+                pureDataReturnType(argumentType)
+              ),
+              option.map(({ argumentReturnType, parameterReturnType }) => {
+                context.report({
+                  node: argumentNode,
+                  messageId: "discardedDataTypeArgument",
+                  data: {
+                    functionName: prettyPrint(node.callee),
+                    dataType: argumentReturnType.symbol.escapedName,
+                    expectedReturnType: (parameterReturnType as any)
+                      .intrinsicName,
+                  },
+                });
+              })
+            )
           )
         );
       },

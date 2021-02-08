@@ -23,26 +23,38 @@ Examples of **incorrect** code for this rule:
 ```ts
 import { task } from "fp-ts";
 
-function myCommand(): Task<string> {
-  return task.of("hello");
-}
+declare const myCommand: (n: number) => Task<string>;
 
 function woops() {
-  myCommand(); // the task will never run, since is not being run nor returned
+  myCommand(1); // the task will never run, since is not being run nor returned
 }
 ```
 
 ```ts
 declare const MyComponent: (props: { handler: () => void }) => JSX.Element;
-declare const myCommand: () => Task<string>;
+
+declare const myCommand: (n: number) => Task<string>;
 
 export function Foo() {
   return (
     <MyComponent
-      handler={() => myCommand()} // bug, the Task will never execute
+      handler={() => myCommand(1)} // bug, the Task will never execute
     />;
   )
 }
+```
+
+```ts
+import { task } from "fp-ts";
+
+declare function foo(arg1: number, callbackUnknown: () => unknown): void;
+
+declare const myCommand: (n: number) => Task<string>;
+
+foo(
+  2,
+  () => myCommand(1) // bug, the Task will never execute
+);
 ```
 
 Examples of **correct** code for this rule:
@@ -50,24 +62,33 @@ Examples of **correct** code for this rule:
 ```ts
 import { task } from "fp-ts";
 
-function myCommand(): Task<string> {
-  return task.of("hello");
-}
+declare const myCommand: (n: number) => Task<string>;
 
-function woops() {
-  return myCommand();
+function ok() {
+  return myCommand(1);
 }
 ```
 
 ```ts
 declare const MyComponent: (props: { handler: () => void }) => JSX.Element;
-declare const myCommand: () => Task<string>;
+
+declare const myCommand: (n: number) => Task<string>;
 
 export function Foo() {
   return (
     <MyComponent
-      handler={() => myCommand()()}
+      handler={() => myCommand(1)()}
     />;
   )
 }
+```
+
+```ts
+import { task } from "fp-ts";
+
+declare function foo(arg1: number, callbackUnknown: () => unknown): void;
+
+declare const myCommand: (n: number) => Task<string>;
+
+foo(2, () => myCommand(1)());
 ```

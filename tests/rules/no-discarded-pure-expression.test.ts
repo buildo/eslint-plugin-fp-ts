@@ -59,6 +59,19 @@ ruleTester.run("no-discarded-pure-expression", rule, {
         const myComponent = <Foo handlerVoid={() => myCommand()} handlerUnknown={() => myCommand()} />
       `,
     },
+    {
+      code: stripIndent`
+        import { task } from "fp-ts"
+
+        function foo(arg1: number, callbackVoid: () => void, callbackUnknown: () => unknown) {
+          return null
+        }
+
+        const myCommand = task.of(42)
+
+        foo(2, () => myCommand(), () => myCommand())
+      `,
+    },
   ],
   invalid: [
     {
@@ -295,7 +308,7 @@ ruleTester.run("no-discarded-pure-expression", rule, {
       `,
       errors: [
         {
-          messageId: "discardedDataType",
+          messageId: "discardedDataTypeJsx",
           data: {
             jsxAttributeName: "handlerVoid",
             expectedReturnType: "void",
@@ -303,9 +316,40 @@ ruleTester.run("no-discarded-pure-expression", rule, {
           },
         },
         {
-          messageId: "discardedDataType",
+          messageId: "discardedDataTypeJsx",
           data: {
             jsxAttributeName: "handlerUnknown",
+            expectedReturnType: "unknown",
+            dataType: "Task",
+          },
+        },
+      ],
+    },
+    {
+      code: stripIndent`
+        import { task } from "fp-ts"
+
+        function foo(arg1: number, callbackVoid: () => void, callbackUnknown: () => unknown) {
+          return null
+        }
+
+        const myCommand = task.of(42)
+
+        foo(2, () => myCommand, () => myCommand)
+      `,
+      errors: [
+        {
+          messageId: "discardedDataTypeArgument",
+          data: {
+            functionName: "foo",
+            expectedReturnType: "void",
+            dataType: "Task",
+          },
+        },
+        {
+          messageId: "discardedDataTypeArgument",
+          data: {
+            functionName: "foo",
             expectedReturnType: "unknown",
             dataType: "Task",
           },
