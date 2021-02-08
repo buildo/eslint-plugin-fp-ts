@@ -4,6 +4,7 @@ import {
   AST_NODE_TYPES,
   TSESTree,
   ESLintUtils,
+  ParserServices,
 } from "@typescript-eslint/experimental-utils";
 import * as recast from "recast";
 import { visitorKeys as tsVisitorKeys } from "@typescript-eslint/typescript-estree";
@@ -395,11 +396,14 @@ export const contextUtils = <
     return false;
   }
 
+  function parserServices(): Option<ParserServices> {
+    return pipe(context.parserServices, option.fromNullable);
+  }
+
   function typeOfNode(node: TSESTree.Node): Option<ts.Type> {
     return pipe(
-      context.parserServices,
-      option.fromNullable,
-      option.bindTo("parserServices"),
+      option.Do,
+      option.bind("parserServices", parserServices),
       option.bind("typeChecker", ({ parserServices }) =>
         pipe(parserServices.program.getTypeChecker(), option.fromNullable)
       ),
@@ -411,23 +415,27 @@ export const contextUtils = <
   }
 
   function isFromFpTs(type: ts.Type): boolean {
-    const program = context.parserServices?.program;
-    if (type.isUnion()) {
-      const allFromFpTs = pipe(type.types, array.every(isFromFpTs));
-      return allFromFpTs;
-    }
+    return pipe(
+      parserServices(),
+      option.exists((parserServices) => {
+        if (type.isUnion()) {
+          const allFromFpTs = pipe(type.types, array.every(isFromFpTs));
+          return allFromFpTs;
+        }
 
-    const declaredFileName = type.symbol
-      ?.getDeclarations()?.[0]
-      ?.getSourceFile().fileName;
+        const declaredFileName = type.symbol
+          ?.getDeclarations()?.[0]
+          ?.getSourceFile().fileName;
 
-    if (declaredFileName && program) {
-      const packageName = program.sourceFileToPackageName.get(
-        declaredFileName.toLowerCase()
-      );
-      return packageName === "fp-ts";
-    }
-    return false;
+        if (declaredFileName) {
+          const packageName = parserServices.program.sourceFileToPackageName.get(
+            declaredFileName.toLowerCase()
+          );
+          return packageName === "fp-ts";
+        }
+        return false;
+      })
+    );
   }
 
   return {
@@ -439,5 +447,6 @@ export const contextUtils = <
     isOnlyUsedAsType,
     typeOfNode,
     isFromFpTs,
+    parserServices,
   };
 };

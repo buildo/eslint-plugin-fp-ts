@@ -1,6 +1,7 @@
-import { array, option, readonlyArray, apply } from "fp-ts";
+import { ParserServices } from "@typescript-eslint/experimental-utils";
+import { array, option, readonlyArray } from "fp-ts";
 import { constVoid, pipe } from "fp-ts/function";
-import ts, { TypeFlags } from "typescript";
+import ts from "typescript";
 import { contextUtils, createRule } from "../utils";
 
 export default createRule({
@@ -25,7 +26,7 @@ export default createRule({
   },
   defaultOptions: [],
   create(context) {
-    const { isFromFpTs, typeOfNode } = contextUtils(context);
+    const { isFromFpTs, typeOfNode, parserServices } = contextUtils(context);
 
     const pureDataPrefixes = ["Task", "IO"];
 
@@ -78,30 +79,33 @@ export default createRule({
         );
       },
       JSXAttribute(node) {
-        const parserServices = context.parserServices!;
-        const typeChecker = parserServices.program.getTypeChecker();
-        const parameterWithVoidOrUknownReturnType = pipe(
-          typeChecker.getContextualTypeForJsxAttribute(
-            parserServices.esTreeNodeToTSNodeMap.get(node)
-          ),
-          option.fromNullable,
-          option.filterMap((t) => {
-            const returnTypes = pipe(
-              t.getCallSignatures(),
-              readonlyArray.map((signature) => signature.getReturnType())
-            );
-            return pipe(
-              returnTypes,
-              readonlyArray.findFirst(
-                (returnType) =>
-                  !!(
-                    returnType.flags & TypeFlags.Void ||
-                    returnType.flags & TypeFlags.Unknown
-                  )
-              )
-            );
-          })
-        );
+        const parameterWithVoidOrUknownReturnType = (
+          parserServices: ParserServices,
+          typeChecker: ts.TypeChecker
+        ) =>
+          pipe(
+            typeChecker.getContextualTypeForJsxAttribute(
+              parserServices.esTreeNodeToTSNodeMap.get(node)
+            ),
+            option.fromNullable,
+            option.filterMap((t) => {
+              const returnTypes = pipe(
+                t.getCallSignatures(),
+                readonlyArray.map((signature) => signature.getReturnType())
+              );
+              return pipe(
+                returnTypes,
+                readonlyArray.findFirst(
+                  (returnType) =>
+                    !!(
+                      returnType.flags & ts.TypeFlags.Void ||
+                      returnType.flags & ts.TypeFlags.Unknown
+                    )
+                )
+              );
+            })
+          );
+
         const argumentWithPureDataTypeReturnType = pipe(
           node,
           typeOfNode,
@@ -115,10 +119,20 @@ export default createRule({
         );
 
         pipe(
-          apply.sequenceS(option.option)({
-            parameterWithVoidOrUknownReturnType,
-            argumentWithPureDataTypeReturnType,
-          }),
+          option.Do,
+          option.bind("parserServices", parserServices),
+          option.bind("typeChecker", ({ parserServices }) =>
+            option.some(parserServices.program.getTypeChecker())
+          ),
+          option.bind(
+            "parameterWithVoidOrUknownReturnType",
+            ({ parserServices, typeChecker }) =>
+              parameterWithVoidOrUknownReturnType(parserServices, typeChecker)
+          ),
+          option.bind(
+            "argumentWithPureDataTypeReturnType",
+            () => argumentWithPureDataTypeReturnType
+          ),
           option.map(
             ({
               argumentWithPureDataTypeReturnType,

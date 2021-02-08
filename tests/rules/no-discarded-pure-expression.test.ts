@@ -45,6 +45,20 @@ ruleTester.run("no-discarded-pure-expression", rule, {
         }
       `,
     },
+    {
+      parserOptions: { ecmaFeatures: { jsx: true } },
+      code: stripIndent`
+        import { task } from "fp-ts"
+
+        function Foo(props: { handlerVoid: () => void; handlerUnknown: () => unknown }) {
+          return null
+        }
+
+        const myCommand = task.of(42)
+
+        const myComponent = <Foo handlerVoid={() => myCommand()} handlerUnknown={() => myCommand()} />
+      `,
+    },
   ],
   invalid: [
     {
@@ -267,11 +281,7 @@ ruleTester.run("no-discarded-pure-expression", rule, {
       ],
     },
     {
-      parserOptions: {
-        ecmaFeatures: {
-          jsx: true,
-        },
-      },
+      parserOptions: { ecmaFeatures: { jsx: true } },
       code: stripIndent`
         import { task } from "fp-ts"
 
