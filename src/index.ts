@@ -5,7 +5,7 @@ const potentialErrors = {
   "no-lib-imports": require("./rules/no-lib-imports").default,
   "no-pipeable": require("./rules/no-pipeable").default,
   "no-module-imports": require("./rules/no-module-imports").default,
-  "no-pure-expression-as-statement": require("./rules/no-pure-expression-as-statement")
+  "no-discarded-pure-expression": require("./rules/no-discarded-pure-expression")
     .default,
 };
 
@@ -32,7 +32,7 @@ export const configs = {
   "recommended-requiring-type-checking": {
     plugins: ["fp-ts"],
     rules: {
-      "fp-ts/no-pure-expression-as-statement": "error",
+      "fp-ts/no-discarded-pure-expression": "error",
     },
   },
   all: {

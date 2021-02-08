@@ -1,4 +1,4 @@
-import rule from "../../src/rules/no-pure-expression-as-statement";
+import rule from "../../src/rules/no-discarded-pure-expression";
 import { ESLintUtils } from "@typescript-eslint/experimental-utils";
 import path from "path";
 import { stripIndent } from "common-tags";
@@ -19,7 +19,7 @@ const ruleTester = new ESLintUtils.RuleTester({
   },
 });
 
-ruleTester.run("no-pure-expression-as-statement", rule, {
+ruleTester.run("no-discarded-pure-expression", rule, {
   valid: [
     {
       code: stripIndent`
@@ -263,6 +263,42 @@ ruleTester.run("no-pure-expression-as-statement", rule, {
               `,
             },
           ],
+        },
+      ],
+    },
+    {
+      parserOptions: {
+        ecmaFeatures: {
+          jsx: true,
+        },
+      },
+      code: stripIndent`
+        import { task } from "fp-ts"
+
+        function Foo(props: { handlerVoid: () => void; handlerUnknown: () => unknown }) {
+          return null
+        }
+
+        const myCommand = task.of(42)
+
+        const myComponent = <Foo handlerVoid={() => myCommand} handlerUnknown={() => myCommand} />
+      `,
+      errors: [
+        {
+          messageId: "discardedDataType",
+          data: {
+            jsxAttributeName: "handlerVoid",
+            expectedReturnType: "void",
+            dataType: "Task",
+          },
+        },
+        {
+          messageId: "discardedDataType",
+          data: {
+            jsxAttributeName: "handlerUnknown",
+            expectedReturnType: "unknown",
+            dataType: "Task",
+          },
         },
       ],
     },

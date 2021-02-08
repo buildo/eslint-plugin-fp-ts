@@ -49,7 +49,7 @@ then you will also need to add some extra info:
     "project": ["./tsconfig.json"]
   },
   "rules": {
-    "fp-ts/no-pure-expression-as-statement": "error"
+    "fp-ts/no-discarded-pure-expression": "error"
   }
 }
 ```
@@ -59,16 +59,16 @@ If your project is a multi-package monorepo, you can follow the instructions
 
 ## List of supported rules
 
-| Rule                                                                                   | Description                                                                                | Fixable | Requires type-checking |
-| -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ | :-----: | :--------------------: |
-| [fp-ts/no-lib-imports](docs/rules/no-lib-imports.md)                                   | Disallow imports from `fp-ts/lib/`                                                         |   🔧    |                        |
-| [fp-ts/no-pipeable](docs/rules/no-pipeable.md)                                         | Disallow imports from the `pipeable` module                                                |   🔧    |                        |
-| [fp-ts/no-module-imports](docs/rules/no-module-imports.md)                             | Disallow imports from fp-ts modules                                                        |   🔧    |                        |
-| [fp-ts/no-redundant-flow](docs/rules/no-redundant-flow.md)                             | Remove redundant uses of `flow`                                                            |   🔧    |                        |
-| [fp-ts/prefer-traverse](docs/rules/prefer-traverse.md)                                 | Replace `map` + `sequence` with `traverse`                                                 |   💡    |                        |
-| [fp-ts/prefer-chain](docs/rules/prefer-chain.md)                                       | Replace `map` + `flatten` with `chain`                                                     |   💡    |                        |
-| [fp-ts/prefer-bimap](docs/rules/prefer-bimap.md)                                       | Replace `map` + `mapLeft` with `bimap`                                                     |   💡    |                        |
-| [fp-ts/no-pure-expression-as-statement](docs/rules/no-pure-expression-as-statement.md) | Disallow expressions returning pure data types (like `Task` or `IO`) in statement position |   💡    |           🦄           |
+| Rule                                                                             | Description                                                                                | Fixable | Requires type-checking |
+| -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ | :-----: | :--------------------: |
+| [fp-ts/no-lib-imports](docs/rules/no-lib-imports.md)                             | Disallow imports from `fp-ts/lib/`                                                         |   🔧    |                        |
+| [fp-ts/no-pipeable](docs/rules/no-pipeable.md)                                   | Disallow imports from the `pipeable` module                                                |   🔧    |                        |
+| [fp-ts/no-module-imports](docs/rules/no-module-imports.md)                       | Disallow imports from fp-ts modules                                                        |   🔧    |                        |
+| [fp-ts/no-redundant-flow](docs/rules/no-redundant-flow.md)                       | Remove redundant uses of `flow`                                                            |   🔧    |                        |
+| [fp-ts/prefer-traverse](docs/rules/prefer-traverse.md)                           | Replace `map` + `sequence` with `traverse`                                                 |   💡    |                        |
+| [fp-ts/prefer-chain](docs/rules/prefer-chain.md)                                 | Replace `map` + `flatten` with `chain`                                                     |   💡    |                        |
+| [fp-ts/prefer-bimap](docs/rules/prefer-bimap.md)                                 | Replace `map` + `mapLeft` with `bimap`                                                     |   💡    |                        |
+| [fp-ts/no-discarded-pure-expression](docs/rules/no-discarded-pure-expression.md) | Disallow expressions returning pure data types (like `Task` or `IO`) in statement position |   💡    |           🦄           |
 
 ### Fixable legend:
 

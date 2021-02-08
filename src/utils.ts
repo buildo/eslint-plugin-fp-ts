@@ -22,6 +22,11 @@ declare module "typescript" {
   interface Program {
     sourceFileToPackageName: ESMap<string, string>;
   }
+  interface TypeChecker {
+    getContextualTypeForJsxAttribute(
+      attribute: JsxAttribute | JsxSpreadAttribute
+    ): Type | undefined;
+  }
 }
 
 const version = require("../package.json").version;
