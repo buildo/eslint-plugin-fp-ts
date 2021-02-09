@@ -46,6 +46,9 @@ export default createRule({
     }
 
     function pureDataReturnType(t: ts.Type): Option<ts.Type> {
+      if (t.isUnion()) {
+        return pipe(t.types, readonlyArray.findFirstMap(pureDataReturnType));
+      }
       return pipe(
         t.getCallSignatures(),
         readonlyArray.map((signature) => signature.getReturnType()),
@@ -54,6 +57,12 @@ export default createRule({
     }
 
     function voidOrUknownReturnType(t: ts.Type): Option<ts.Type> {
+      if (t.isUnion()) {
+        return pipe(
+          t.types,
+          readonlyArray.findFirstMap(voidOrUknownReturnType)
+        );
+      }
       return pipe(
         t.getCallSignatures(),
         readonlyArray.map((signature) => signature.getReturnType()),

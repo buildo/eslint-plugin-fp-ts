@@ -326,6 +326,26 @@ ruleTester.run("no-discarded-pure-expression", rule, {
       ],
     },
     {
+      parserOptions: { ecmaFeatures: { jsx: true } },
+      code: stripIndent`
+        import { task } from "fp-ts"
+
+        const myCommand = task.of(42)
+
+        const myComponent = <div onClick={() => myCommand} />
+      `,
+      errors: [
+        {
+          messageId: "discardedDataTypeJsx",
+          data: {
+            jsxAttributeName: "onClick",
+            expectedReturnType: "void",
+            dataType: "Task",
+          },
+        },
+      ],
+    },
+    {
       code: stripIndent`
         import { task } from "fp-ts"
 
