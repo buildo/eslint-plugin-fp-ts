@@ -34,10 +34,13 @@ export default createRule({
     const pureDataPrefixes = ["Task", "IO"];
 
     function isPureDataType(t: ts.Type): boolean {
-      return pipe(
-        pureDataPrefixes,
-        array.some((prefix) =>
-          t.symbol.escapedName.toString().startsWith(prefix)
+      return (
+        isFromFpTs(t) &&
+        pipe(
+          pureDataPrefixes,
+          array.some((prefix) =>
+            t.symbol.escapedName.toString().startsWith(prefix)
+          )
         )
       );
     }
@@ -69,7 +72,6 @@ export default createRule({
         pipe(
           node.expression,
           typeOfNode,
-          option.filter(isFromFpTs),
           option.filter((t) => {
             if (t.isUnion()) {
               return pipe(t.types, array.every(isPureDataType));
