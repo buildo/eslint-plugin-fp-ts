@@ -32,6 +32,7 @@ declare module "typescript" {
       argIndex: number
     ): Type | undefined;
   }
+  function toFileNameLowerCase(x: string): string;
 }
 
 const version = require("../package.json").version;
@@ -433,7 +434,7 @@ export const contextUtils = <
 
         if (declaredFileName) {
           const packageName = parserServices.program.sourceFileToPackageName.get(
-            declaredFileName.toLowerCase()
+            ts.toFileNameLowerCase(declaredFileName)
           );
           return packageName === "fp-ts";
         }
