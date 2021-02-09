@@ -39,7 +39,7 @@ export default createRule({
         pipe(
           pureDataPrefixes,
           array.some((prefix) =>
-            t.symbol.escapedName.toString().startsWith(prefix)
+            t.symbol?.escapedName.toString().startsWith(prefix)
           )
         )
       );

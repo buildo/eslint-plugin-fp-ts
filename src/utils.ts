@@ -399,7 +399,11 @@ export const contextUtils = <
   }
 
   function parserServices(): Option<ParserServices> {
-    return pipe(context.parserServices, option.fromNullable);
+    return pipe(
+      context.parserServices,
+      option.fromNullable,
+      option.filter((parserServices) => parserServices.hasFullTypeInformation)
+    );
   }
 
   function typeOfNode(node: TSESTree.Node): Option<ts.Type> {
