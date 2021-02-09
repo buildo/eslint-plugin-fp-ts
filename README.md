@@ -41,21 +41,26 @@ and enable the rules you want, for example
 If you want to enable rules that require type information (see the table below),
 then you will also need to add some extra info:
 
-```json
-{
-  "plugins": ["fp-ts"],
-  "parserOptions": {
-    "tsconfigRootDir": __dirname,
-    "project": ["./tsconfig.json"]
+```js
+module.exports = {
+  plugins: ["fp-ts"],
+  parserOptions: {
+    tsconfigRootDir: __dirname,
+    project: ["./tsconfig.json"],
   },
-  "rules": {
-    "fp-ts/no-discarded-pure-expression": "error"
-  }
-}
+  rules: {
+    "fp-ts/no-discarded-pure-expression": "error",
+  },
+};
 ```
 
 If your project is a multi-package monorepo, you can follow the instructions
 [here](https://github.com/typescript-eslint/typescript-eslint/blob/master/docs/getting-started/linting/MONOREPO.md).
+
+> ⚠️ Note that you will need to make the ESLint config file a .js file, due to
+> the need of setting `tsconfigRootDir` to `__dirname`. This is necessary to
+> make both editor integrations and the CLI work with the correct path. More
+> info here: https://github.com/typescript-eslint/typescript-eslint/issues/251
 
 ## List of supported rules
 
