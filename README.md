@@ -110,14 +110,14 @@ This configuration needs to be included _in addition_ to the `recommended` one:
 ```
 {
   "extends": [
-    "plugin:fp-ts/recommended"
+    "plugin:fp-ts/recommended",
     "plugin:fp-ts/recommended-requiring-type-checking"
   ]
 }
 ```
 
 > 👉 You can read more about linting with type information, including
-> performance condideration
+> performance considerations 
 > [here](https://github.com/typescript-eslint/typescript-eslint/blob/master/docs/getting-started/linting/TYPED_LINTING.md)
 
 ### All
