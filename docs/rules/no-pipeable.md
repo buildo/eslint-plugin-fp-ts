@@ -4,7 +4,7 @@ Disallow imports from the `pipeable` module. `pipeable` has been deprecated and
 it will be removed in future versions of fp-ts. It's recommended to import
 `pipe` from the `function` module instead.
 
-**Fixable**: This rule is automatically fixable using the `--fix` flag on the
+**🔧 Fixable**: This rule is automatically fixable using the `--fix` flag on the
 command line.
 
 > Note: the autofix is available only when importing `pipe`

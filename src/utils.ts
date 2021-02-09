@@ -4,6 +4,7 @@ import {
   AST_NODE_TYPES,
   TSESTree,
   ESLintUtils,
+  ParserServices,
 } from "@typescript-eslint/experimental-utils";
 import * as recast from "recast";
 import { visitorKeys as tsVisitorKeys } from "@typescript-eslint/typescript-estree";
@@ -15,6 +16,21 @@ import {
   RuleFix,
   RuleFixer,
 } from "@typescript-eslint/experimental-utils/dist/ts-eslint";
+import ts from "typescript";
+import { Option } from "fp-ts/Option";
+
+declare module "typescript" {
+  interface TypeChecker {
+    getContextualTypeForJsxAttribute(
+      attribute: JsxAttribute | JsxSpreadAttribute
+    ): Type | undefined;
+    getContextualTypeForArgumentAtIndex(
+      nodeIn: Expression,
+      argIndex: number
+    ): Type | undefined;
+  }
+  function toFileNameLowerCase(x: string): string;
+}
 
 const version = require("../package.json").version;
 
@@ -382,6 +398,67 @@ export const contextUtils = <
     return false;
   }
 
+  function parserServices(): Option<ParserServices> {
+    return pipe(
+      context.parserServices,
+      option.fromNullable,
+      option.filter((parserServices) => parserServices.hasFullTypeInformation)
+    );
+  }
+
+  function typeOfNode(node: TSESTree.Node): Option<ts.Type> {
+    return pipe(
+      option.Do,
+      option.bind("parserServices", parserServices),
+      option.bind("typeChecker", ({ parserServices }) =>
+        pipe(parserServices.program.getTypeChecker(), option.fromNullable)
+      ),
+      option.map(({ parserServices, typeChecker }) => {
+        const tsNode = parserServices.esTreeNodeToTSNodeMap.get(node);
+        return typeChecker.getTypeAtLocation(tsNode);
+      })
+    );
+  }
+
+  const compilerHost = pipe(
+    parserServices(),
+    option.map((parserServices) =>
+      ts.createCompilerHost(parserServices.program.getCompilerOptions())
+    )
+  );
+
+  function isFromFpTs(type: ts.Type): boolean {
+    return pipe(
+      parserServices(),
+      option.exists((parserServices) => {
+        if (type.isUnion()) {
+          const allFromFpTs = pipe(type.types, array.every(isFromFpTs));
+          return allFromFpTs;
+        }
+
+        const declaredFileName = type.symbol
+          ?.getDeclarations()?.[0]
+          ?.getSourceFile().fileName;
+
+        if (declaredFileName) {
+          return pipe(
+            compilerHost,
+            option.exists(
+              (compilerHost) =>
+                !!ts.resolveModuleName(
+                  "fp-ts",
+                  declaredFileName,
+                  parserServices.program.getCompilerOptions(),
+                  compilerHost
+                ).resolvedModule
+            )
+          );
+        }
+        return false;
+      })
+    );
+  }
+
   return {
     addNamedImportIfNeeded,
     removeImportDeclaration,
@@ -389,5 +466,8 @@ export const contextUtils = <
     isPipeOrFlowExpression,
     isIdentifierImportedFrom,
     isOnlyUsedAsType,
+    typeOfNode,
+    isFromFpTs,
+    parserServices,
   };
 };

@@ -5,7 +5,7 @@ Disallow imports from fp-ts modules, such as `fp-ts/Option`.
 The `function` module is an exception and it's allowed nonetheless, since it's
 not exported from fp-ts's index.
 
-**Fixable**: This rule is automatically fixable using the `--fix` flag on the
+**🔧 Fixable**: This rule is automatically fixable using the `--fix` flag on the
 command line.
 
 ## Rule Details
