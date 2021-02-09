@@ -20,9 +20,6 @@ import ts from "typescript";
 import { Option } from "fp-ts/Option";
 
 declare module "typescript" {
-  interface Program {
-    sourceFileToPackageName: ESMap<string, string>;
-  }
   interface TypeChecker {
     getContextualTypeForJsxAttribute(
       attribute: JsxAttribute | JsxSpreadAttribute
@@ -419,6 +416,13 @@ export const contextUtils = <
     );
   }
 
+  const compilerHost = pipe(
+    parserServices(),
+    option.map((parserServices) =>
+      ts.createCompilerHost(parserServices.program.getCompilerOptions())
+    )
+  );
+
   function isFromFpTs(type: ts.Type): boolean {
     return pipe(
       parserServices(),
@@ -433,10 +437,18 @@ export const contextUtils = <
           ?.getSourceFile().fileName;
 
         if (declaredFileName) {
-          const packageName = parserServices.program.sourceFileToPackageName.get(
-            ts.toFileNameLowerCase(declaredFileName)
+          return pipe(
+            compilerHost,
+            option.exists(
+              (compilerHost) =>
+                !!ts.resolveModuleName(
+                  "fp-ts",
+                  declaredFileName,
+                  parserServices.program.getCompilerOptions(),
+                  compilerHost
+                ).resolvedModule
+            )
           );
-          return packageName === "fp-ts";
         }
         return false;
       })
