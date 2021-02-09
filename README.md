@@ -100,7 +100,7 @@ The rules included in this configuration are:
 - [fp-ts/no-lib-imports](docs/rules/no-lib-imports.md)
 - [fp-ts/no-pipeable](docs/rules/no-pipeable.md)
 
-### Recommended requiring type-checking)
+### Recommended requiring type-checking
 
 We also provide a `recommended-requiring-type-checking` which includes
 recommended rules which require type information.
