@@ -72,6 +72,23 @@ ruleTester.run("no-discarded-pure-expression", rule, {
         foo(2, () => myCommand(), () => myCommand())
       `,
     },
+    {
+      // https://github.com/buildo/eslint-plugin-fp-ts/issues/62
+      code: stripIndent`
+        import { IO } from "fp-ts/IO";
+        import { IORef } from "fp-ts/IORef";
+
+        class Foo {
+          private readonly errors: IORef<string[]>;
+          readonly getErrors: IO<string[]>;
+
+          constructor() {
+            this.errors = new IORef([]);
+            this.getErrors = this.errors.read;
+          }
+        }
+      `,
+    },
   ],
   invalid: [
     {
