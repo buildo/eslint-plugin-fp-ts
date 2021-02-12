@@ -134,9 +134,9 @@ export default createRule({
               option.filter(isIdentifier),
               option.exists(hasName("some"))
             )),
-            option.map((body) => body.parent),
+            option.chain(flow((body) => body.parent, option.fromNullable)),
             option.exists((parent) => (
-                parent?.type !== AST_NODE_TYPES.CallExpression
+                parent.type !== AST_NODE_TYPES.CallExpression
                 || parent.parent?.type !== AST_NODE_TYPES.ArrowFunctionExpression
                 || (
                   parent.arguments.length === 1
