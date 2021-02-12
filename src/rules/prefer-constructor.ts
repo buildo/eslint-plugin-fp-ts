@@ -1,9 +1,13 @@
 import { AST_NODE_TYPES, TSESTree } from "@typescript-eslint/experimental-utils"
 import { boolean, option, readonlyNonEmptyArray } from "fp-ts"
-import { constVoid, flow, pipe } from "fp-ts/function"
+import { constant, constVoid, flow, pipe } from "fp-ts/function"
 import { calleeIdentifier, contextUtils, createRule } from "../utils"
 
 const hasName = (name: string) => (identifier: TSESTree.Identifier) => identifier.name === name
+
+const isArrowFunctionExpression = (node: TSESTree.Node): node is TSESTree.ArrowFunctionExpression => node.type === AST_NODE_TYPES.ArrowFunctionExpression
+
+const isCallExpression = (node: TSESTree.Node): node is TSESTree.CallExpression => node.type === AST_NODE_TYPES.CallExpression
 
 const isMemberExpression = (node: TSESTree.Node): node is TSESTree.MemberExpression => node.type === AST_NODE_TYPES.MemberExpression
 
@@ -108,7 +112,15 @@ export default createRule({
           return pipe(
             node,
             option.of,
-            option.map((n) => n.type === AST_NODE_TYPES.ArrowFunctionExpression && n.body.type === AST_NODE_TYPES.CallExpression ? n.body.callee : n),
+            option.map((n) => pipe(
+              n,
+              option.of,
+              option.filter(isArrowFunctionExpression),
+              option.map((f) => f.body),
+              option.filter(isCallExpression),
+              option.map((e) => e.callee),
+              option.getOrElse(constant(n))
+            )),
             option.filter(isMemberExpression),
             option.exists(
               (body) =>
