@@ -26,7 +26,7 @@ const getParent = (identifier: TSESTree.BaseNode) => pipe(
 
 const getArguments = (call: TSESTree.CallExpression) => pipe(
   call.arguments,
-  readonlyNonEmptyArray.fromArray,
+  readonlyNonEmptyArray.fromArray
 )
 
 const getFirstArgument = (call: TSESTree.CallExpression) => pipe(
@@ -37,13 +37,30 @@ const getFirstArgument = (call: TSESTree.CallExpression) => pipe(
 
 const getParams = (call: TSESTree.FunctionLike) => pipe(
   call.params,
-  readonlyNonEmptyArray.fromArray,
+  readonlyNonEmptyArray.fromArray
 )
 
 const getFirstParam = (call: TSESTree.FunctionLike) => pipe(
   call,
   getParams,
   option.map(readonlyNonEmptyArray.head)
+)
+
+const isIdentifierWithName = (name: string) => (node: TSESTree.Node) => pipe(
+  node,
+  option.of,
+  option.filter(isIdentifier),
+  option.exists(hasName(name))
+)
+
+const hasObjectIdentifierWithName = (name: string) => (node: TSESTree.MemberExpression) => pipe(
+  node.object,
+  isIdentifierWithName(name)
+)
+
+const hasPropertyIdentifierWithName = (name: string) => (node: TSESTree.MemberExpression) => pipe(
+  node.property,
+  isIdentifierWithName(name)
 )
 
 export default createRule({
@@ -74,9 +91,7 @@ export default createRule({
             option.filter(hasName("fold")),
             option.chain(getParent),
             option.filter(isMemberExpression),
-            option.map((parent) => parent.object),
-            option.filter(isIdentifier),
-            option.exists(hasName("either"))
+            option.exists(hasObjectIdentifierWithName("either"))
           )
         }
 
@@ -93,21 +108,8 @@ export default createRule({
           return pipe(
             node,
             option.of,
-            option.filter(flow(
-              (n) => n.object,
-              option.of,
-              option.filter(isIdentifier),
-              option.filter(hasName("option")),
-              option.isSome
-            )),
-            option.filter(flow(
-              (n) => n.property,
-              option.of,
-              option.filter(isIdentifier),
-              option.filter(hasName("none")),
-              option.isSome
-            )),
-            option.isSome
+            option.filter(hasObjectIdentifierWithName("option")),
+            option.exists(hasPropertyIdentifierWithName("none"))
           )
         }
 
@@ -118,8 +120,7 @@ export default createRule({
             option.filter<TSESTree.CallExpression>(flow(
               calleeIdentifier,
               option.filter(hasName("constant")),
-              option.filter((callee) => isIdentifierImportedFrom(callee, /fp-ts\//, context)),
-              option.isSome
+              option.exists((callee) => isIdentifierImportedFrom(callee, /fp-ts\//, context))
             )),
             option.chain(getFirstArgument),
             option.filter(isMemberExpression),
@@ -154,18 +155,8 @@ export default createRule({
               option.getOrElse(constant(n))
             )),
             option.filter(isMemberExpression),
-            option.filter(flow(
-              (body) => body.object,
-              option.of,
-              option.filter(isIdentifier),
-              option.exists(hasName("option"))
-            )),
-            option.filter(flow(
-              (body) => body.property,
-              option.of,
-              option.filter(isIdentifier),
-              option.exists(hasName("some"))
-            )),
+            option.filter(hasObjectIdentifierWithName("option")),
+            option.filter(hasPropertyIdentifierWithName("some")),
             option.chain(getParent),
             option.exists((parent) => (
               !isCallExpression(parent)
