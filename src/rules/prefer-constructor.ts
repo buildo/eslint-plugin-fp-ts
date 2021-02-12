@@ -141,19 +141,30 @@ export default createRule({
           }
         }
 
-        const isOptionSomeValue = (node: TSESTree.Expression) => {
+        const getBodyCallee = (node: TSESTree.Expression) => {
           return pipe(
             node,
             option.of,
-            option.map((n) => pipe(
-              n,
-              option.of,
-              option.filter(isArrowFunctionExpression),
-              option.map((f) => f.body),
-              option.filter(isCallExpression),
-              option.map((e) => e.callee),
-              option.getOrElse(constant(n))
-            )),
+            option.filter(isArrowFunctionExpression),
+            option.map((f) => f.body),
+            option.filter(isCallExpression),
+            option.map((e) => e.callee)
+          )
+        }
+
+        const getBodyCalleeOrNode = (node: TSESTree.Expression) => {
+          return pipe(
+            node,
+            getBodyCallee,
+            option.getOrElse(constant(node))
+          )
+        }
+
+        const isOptionSomeValue = (node: TSESTree.Expression) => {
+          return pipe(
+            node,
+            getBodyCalleeOrNode,
+            option.of,
             option.filter(isMemberExpression),
             option.filter(hasObjectIdentifierWithName("option")),
             option.filter(hasPropertyIdentifierWithName("some")),
