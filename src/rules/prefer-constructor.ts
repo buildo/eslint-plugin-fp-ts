@@ -18,6 +18,11 @@ const getParent = (identifier: TSESTree.BaseNode) => pipe(
   option.fromNullable
 )
 
+const getFirstArgument = (call: TSESTree.CallExpression) => pipe(
+  call.arguments[0],
+  option.fromNullable
+)
+
 export default createRule({
   name: "prefer-constructor",
   meta: {
@@ -86,10 +91,14 @@ export default createRule({
         const isOptionNoneCallExpression = (node: TSESTree.CallExpression) => {
           return pipe(
             node,
-            calleeIdentifier,
-            option.filter(hasName("constant")),
-            option.filter((callee) => isIdentifierImportedFrom(callee, /fp-ts\//, context)),
-            option.chain(() => pipe(node.arguments[0], option.fromNullable)),
+            option.of,
+            option.filter<TSESTree.CallExpression>(flow(
+              calleeIdentifier,
+              option.filter(hasName("constant")),
+              option.filter((callee) => isIdentifierImportedFrom(callee, /fp-ts\//, context)),
+              option.isSome
+            )),
+            option.chain(getFirstArgument),
             option.filter(isMemberExpression),
             option.exists(isOptionNoneMemberExpression)
           )
