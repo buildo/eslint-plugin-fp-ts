@@ -35,7 +35,12 @@ export default createRule({
             return pipe(
               node,
               calleeIdentifier,
-              option.exists((callee) => callee.name === "fold")
+              option.filter((callee) => callee.name === "fold"),
+              option.chain(flow((callee) => callee.parent, option.fromNullable)),
+              option.filter((parent): parent is TSESTree.MemberExpression => parent.type === AST_NODE_TYPES.MemberExpression),
+              option.map((parent) => parent.object),
+              option.filter((object): object is TSESTree.Identifier => object.type === AST_NODE_TYPES.Identifier),
+              option.exists((object) => object.name === 'either')
             );
           }
 
