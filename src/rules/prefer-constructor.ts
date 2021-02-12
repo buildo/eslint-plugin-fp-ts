@@ -7,6 +7,10 @@ const hasName = (name: string) => (identifier: TSESTree.Identifier) => identifie
 
 const isArrowFunctionExpression = (node: TSESTree.Node): node is TSESTree.ArrowFunctionExpression => node.type === AST_NODE_TYPES.ArrowFunctionExpression
 
+const isFunctionExpression = (node: TSESTree.Node): node is TSESTree.FunctionExpression => node.type === AST_NODE_TYPES.FunctionExpression
+
+const isFunctionLike = (node: TSESTree.Node): node is TSESTree.FunctionLike => isArrowFunctionExpression(node) || isFunctionExpression(node)
+
 const isCallExpression = (node: TSESTree.Node): node is TSESTree.CallExpression => node.type === AST_NODE_TYPES.CallExpression
 
 const isMemberExpression = (node: TSESTree.Node): node is TSESTree.MemberExpression => node.type === AST_NODE_TYPES.MemberExpression
@@ -20,6 +24,11 @@ const getParent = (identifier: TSESTree.BaseNode) => pipe(
 
 const getFirstArgument = (call: TSESTree.CallExpression) => pipe(
   call.arguments[0],
+  option.fromNullable
+)
+
+const getFirstParam = (call: TSESTree.FunctionLike) => pipe(
+  call.params[0],
   option.fromNullable
 )
 
@@ -148,12 +157,11 @@ export default createRule({
               !isCallExpression(parent)
               || !(parent.parent)
               || !isArrowFunctionExpression(parent.parent)
-              || (
-                parent.arguments.length === 1
-                && parent.parent.params.length === 1
-                && parent.arguments[0]?.type === AST_NODE_TYPES.Identifier
-                && parent.parent.params[0]?.type === AST_NODE_TYPES.Identifier
-                && parent.arguments[0].name === parent.parent.params[0].name
+              || pipe(
+                option.Do,
+                option.bind('argument', () => pipe(parent, getFirstArgument, option.filter(isIdentifier))),
+                option.bind('param', () => pipe(parent, getParent, option.filter(isFunctionLike), option.chain(getFirstParam), option.filter(isIdentifier))),
+                option.exists(({ argument, param }) => hasName(argument.name)(param))
               )
             ))
           )
