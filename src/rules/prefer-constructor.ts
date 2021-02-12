@@ -122,15 +122,30 @@ export default createRule({
               option.getOrElse(constant(n))
             )),
             option.filter(isMemberExpression),
-            option.exists(
-              (body) =>
-                body.object?.type === AST_NODE_TYPES.Identifier && body.object.name === "option"
-                &&
-                body.property?.type === AST_NODE_TYPES.Identifier && body.property.name === "some"
-                &&
-                (body.parent?.type !== AST_NODE_TYPES.CallExpression || body.parent.parent?.type !== AST_NODE_TYPES.ArrowFunctionExpression
-                  ||
-                  (body.parent.arguments.length === 1 && body.parent.parent.params.length === 1 && body.parent.arguments[0]?.type === AST_NODE_TYPES.Identifier && body.parent.parent.params[0]?.type === AST_NODE_TYPES.Identifier && body.parent.arguments[0].name === body.parent.parent.params[0].name))
+            option.filter((body) => pipe(
+              body.object,
+              option.of,
+              option.filter(isIdentifier),
+              option.exists(hasName("option"))
+            )),
+            option.filter((body) => pipe(
+              body.property,
+              option.of,
+              option.filter(isIdentifier),
+              option.exists(hasName("some"))
+            )),
+            option.map((body) => body.parent),
+            option.exists((parent) => (
+                parent?.type !== AST_NODE_TYPES.CallExpression
+                || parent.parent?.type !== AST_NODE_TYPES.ArrowFunctionExpression
+                || (
+                  parent.arguments.length === 1
+                  && parent.parent.params.length === 1
+                  && parent.arguments[0]?.type === AST_NODE_TYPES.Identifier
+                  && parent.parent.params[0]?.type === AST_NODE_TYPES.Identifier
+                  && parent.arguments[0].name === parent.parent.params[0].name
+                )
+              )
             )
           )
         }
