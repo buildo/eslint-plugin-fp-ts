@@ -11,8 +11,8 @@ const isIdentifier = (node: TSESTree.Node): node is TSESTree.Identifier => node.
 
 const getParent = (identifier: TSESTree.BaseNode) => pipe(
   identifier.parent,
-  option.fromNullable,
-);
+  option.fromNullable
+)
 
 export default createRule({
   name: "prefer-constructor",
@@ -61,8 +61,20 @@ export default createRule({
           return pipe(
             node,
             option.of,
-            option.filter(() => node.object?.type === AST_NODE_TYPES.Identifier && node.object.name === "option"),
-            option.filter(() => node.property?.type === AST_NODE_TYPES.Identifier && node.property.name === "none"),
+            option.filter(flow(
+              (n) => n.object,
+              option.of,
+              option.filter(isIdentifier),
+              option.filter(hasName("option")),
+              option.isSome
+            )),
+            option.filter(flow(
+              (n) => n.property,
+              option.of,
+              option.filter(isIdentifier),
+              option.filter(hasName("none")),
+              option.isSome
+            )),
             option.isSome
           )
         }
@@ -71,11 +83,8 @@ export default createRule({
           return pipe(
             node,
             calleeIdentifier,
-            option.filter(
-              (callee) =>
-                callee.name === "constant" &&
-                isIdentifierImportedFrom(callee, /fp-ts\//, context)
-            ),
+            option.filter(hasName("constant")),
+            option.filter((callee) => isIdentifierImportedFrom(callee, /fp-ts\//, context)),
             option.chain(() => pipe(node.arguments[0], option.fromNullable)),
             option.filter(isMemberExpression),
             option.exists(isOptionNoneMemberExpression)
