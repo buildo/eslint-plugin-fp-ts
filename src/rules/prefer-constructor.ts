@@ -1,9 +1,11 @@
 import { AST_NODE_TYPES, TSESTree } from "@typescript-eslint/experimental-utils"
-import { boolean, option, readonlyNonEmptyArray } from "fp-ts"
-import { constant, constVoid, flow, pipe } from "fp-ts/function"
+import { option, readonlyNonEmptyArray } from "fp-ts"
+import { constant, flow, pipe } from "fp-ts/function"
 import { calleeIdentifier, contextUtils, createRule } from "../utils"
 
 const hasName = (name: string) => (identifier: TSESTree.Identifier) => identifier.name === name
+
+const hasLength = (length: number) => <T>(array: ReadonlyArray<T>) => array.length === length
 
 const isArrowFunctionExpression = (node: TSESTree.Node): node is TSESTree.ArrowFunctionExpression => node.type === AST_NODE_TYPES.ArrowFunctionExpression
 
@@ -22,14 +24,26 @@ const getParent = (identifier: TSESTree.BaseNode) => pipe(
   option.fromNullable
 )
 
+const getArguments = (call: TSESTree.CallExpression) => pipe(
+  call.arguments,
+  readonlyNonEmptyArray.fromArray,
+)
+
 const getFirstArgument = (call: TSESTree.CallExpression) => pipe(
-  call.arguments[0],
-  option.fromNullable
+  call,
+  getArguments,
+  option.map(readonlyNonEmptyArray.head)
+)
+
+const getParams = (call: TSESTree.FunctionLike) => pipe(
+  call.params,
+  readonlyNonEmptyArray.fromArray,
 )
 
 const getFirstParam = (call: TSESTree.FunctionLike) => pipe(
-  call.params[0],
-  option.fromNullable
+  call,
+  getParams,
+  option.map(readonlyNonEmptyArray.head)
 )
 
 export default createRule({
@@ -159,8 +173,8 @@ export default createRule({
               || !isArrowFunctionExpression(parent.parent)
               || pipe(
                 option.Do,
-                option.bind('argument', () => pipe(parent, getFirstArgument, option.filter(isIdentifier))),
-                option.bind('param', () => pipe(parent, getParent, option.filter(isFunctionLike), option.chain(getFirstParam), option.filter(isIdentifier))),
+                option.bind("argument", () => pipe(parent, getFirstArgument, option.filter(isIdentifier))),
+                option.bind("param", () => pipe(parent, getParent, option.filter(isFunctionLike), option.chain(getFirstParam), option.filter(isIdentifier))),
                 option.exists(({ argument, param }) => hasName(argument.name)(param))
               )
             ))
@@ -168,36 +182,34 @@ export default createRule({
         }
         pipe(
           node,
-          isEitherFold,
-          boolean.fold(constVoid, () => pipe(
-            node.arguments,
-            readonlyNonEmptyArray.fromArray,
-            option.filter((args) => args.length === 2),
-            option.filter(flow(readonlyNonEmptyArray.head, isOptionNone)),
-            option.filter(flow(readonlyNonEmptyArray.last, isOptionSomeValue)),
-            option.map(() => {
-              context.report({
-                loc: {
-                  start: node.loc.start,
-                  end: node.loc.end
-                },
-                messageId: "eitherFoldIsOptionFromEither",
-                suggest: [
-                  {
-                    messageId: "replaceEitherFoldWithOptionFromEither",
-                    fix(fixer) {
-                      return [
-                        fixer.replaceTextRange(
-                          node.range,
-                          `option.fromEither`
-                        )
-                      ]
-                    }
+          option.of,
+          option.filter(isEitherFold),
+          option.chain(getArguments),
+          option.filter(hasLength(2)),
+          option.filter(flow(readonlyNonEmptyArray.head, isOptionNone)),
+          option.filter(flow(readonlyNonEmptyArray.last, isOptionSomeValue)),
+          option.map(() => {
+            context.report({
+              loc: {
+                start: node.loc.start,
+                end: node.loc.end
+              },
+              messageId: "eitherFoldIsOptionFromEither",
+              suggest: [
+                {
+                  messageId: "replaceEitherFoldWithOptionFromEither",
+                  fix(fixer) {
+                    return [
+                      fixer.replaceTextRange(
+                        node.range,
+                        `option.fromEither`
+                      )
+                    ]
                   }
-                ]
-              })
+                }
+              ]
             })
-          ))
+          })
         )
       }
     }
