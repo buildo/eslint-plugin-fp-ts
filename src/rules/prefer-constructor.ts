@@ -131,66 +131,65 @@ export default createRule({
               option.getOrElse(constant(n))
             )),
             option.filter(isMemberExpression),
-            option.filter((body) => pipe(
-              body.object,
+            option.filter(flow(
+              (body) => body.object,
               option.of,
               option.filter(isIdentifier),
               option.exists(hasName("option"))
             )),
-            option.filter((body) => pipe(
-              body.property,
+            option.filter(flow(
+              (body) => body.property,
               option.of,
               option.filter(isIdentifier),
               option.exists(hasName("some"))
             )),
-            option.chain(flow((body) => body.parent, option.fromNullable)),
+            option.chain(getParent),
             option.exists((parent) => (
-                parent.type !== AST_NODE_TYPES.CallExpression
-                || parent.parent?.type !== AST_NODE_TYPES.ArrowFunctionExpression
-                || (
-                  parent.arguments.length === 1
-                  && parent.parent.params.length === 1
-                  && parent.arguments[0]?.type === AST_NODE_TYPES.Identifier
-                  && parent.parent.params[0]?.type === AST_NODE_TYPES.Identifier
-                  && parent.arguments[0].name === parent.parent.params[0].name
-                )
+              !isCallExpression(parent)
+              || !(parent.parent)
+              || !isArrowFunctionExpression(parent.parent)
+              || (
+                parent.arguments.length === 1
+                && parent.parent.params.length === 1
+                && parent.arguments[0]?.type === AST_NODE_TYPES.Identifier
+                && parent.parent.params[0]?.type === AST_NODE_TYPES.Identifier
+                && parent.arguments[0].name === parent.parent.params[0].name
               )
-            )
+            ))
           )
         }
         pipe(
           node,
           isEitherFold,
-          boolean.fold(constVoid, () =>
-            pipe(
-              readonlyNonEmptyArray.fromArray(node.arguments),
-              option.filter((args) => args.length === 2),
-              option.filter(flow(readonlyNonEmptyArray.head, isOptionNone)),
-              option.filter(flow(readonlyNonEmptyArray.last, isOptionSomeValue)),
-              option.map(() => {
-                context.report({
-                  loc: {
-                    start: node.loc.start,
-                    end: node.loc.end
-                  },
-                  messageId: "eitherFoldIsOptionFromEither",
-                  suggest: [
-                    {
-                      messageId: "replaceEitherFoldWithOptionFromEither",
-                      fix(fixer) {
-                        return [
-                          fixer.replaceTextRange(
-                            node.range,
-                            `option.fromEither`
-                          )
-                        ]
-                      }
+          boolean.fold(constVoid, () => pipe(
+            node.arguments,
+            readonlyNonEmptyArray.fromArray,
+            option.filter((args) => args.length === 2),
+            option.filter(flow(readonlyNonEmptyArray.head, isOptionNone)),
+            option.filter(flow(readonlyNonEmptyArray.last, isOptionSomeValue)),
+            option.map(() => {
+              context.report({
+                loc: {
+                  start: node.loc.start,
+                  end: node.loc.end
+                },
+                messageId: "eitherFoldIsOptionFromEither",
+                suggest: [
+                  {
+                    messageId: "replaceEitherFoldWithOptionFromEither",
+                    fix(fixer) {
+                      return [
+                        fixer.replaceTextRange(
+                          node.range,
+                          `option.fromEither`
+                        )
+                      ]
                     }
-                  ]
-                })
+                  }
+                ]
               })
-            )
-          )
+            })
+          ))
         )
       }
     }
