@@ -3,6 +3,17 @@ import { boolean, option, readonlyNonEmptyArray } from "fp-ts"
 import { constVoid, flow, pipe } from "fp-ts/function"
 import { calleeIdentifier, contextUtils, createRule } from "../utils"
 
+const hasName = (name: string) => (identifier: TSESTree.Identifier) => identifier.name === name
+
+const isMemberExpression = (node: TSESTree.Node): node is TSESTree.MemberExpression => node.type === AST_NODE_TYPES.MemberExpression
+
+const isIdentifier = (node: TSESTree.Node): node is TSESTree.Identifier => node.type === AST_NODE_TYPES.Identifier
+
+const getParent = (identifier: TSESTree.BaseNode) => pipe(
+  identifier.parent,
+  option.fromNullable,
+);
+
 export default createRule({
   name: "prefer-constructor",
   meta: {
@@ -28,12 +39,12 @@ export default createRule({
           return pipe(
             node,
             calleeIdentifier,
-            option.filter((callee) => callee.name === "fold"),
-            option.chain(flow((callee) => callee.parent, option.fromNullable)),
-            option.filter((parent): parent is TSESTree.MemberExpression => parent.type === AST_NODE_TYPES.MemberExpression),
+            option.filter(hasName("fold")),
+            option.chain(getParent),
+            option.filter(isMemberExpression),
             option.map((parent) => parent.object),
-            option.filter((object): object is TSESTree.Identifier => object.type === AST_NODE_TYPES.Identifier),
-            option.exists((object) => object.name === "either")
+            option.filter(isIdentifier),
+            option.exists(hasName("either"))
           )
         }
 
@@ -41,7 +52,7 @@ export default createRule({
           return pipe(
             node.body,
             option.of,
-            option.filter((arg): arg is TSESTree.MemberExpression => arg.type === AST_NODE_TYPES.MemberExpression),
+            option.filter(isMemberExpression),
             option.exists(isOptionNoneMemberExpression)
           )
         }
@@ -66,7 +77,7 @@ export default createRule({
                 isIdentifierImportedFrom(callee, /fp-ts\//, context)
             ),
             option.chain(() => pipe(node.arguments[0], option.fromNullable)),
-            option.filter((arg): arg is TSESTree.MemberExpression => arg.type === AST_NODE_TYPES.MemberExpression),
+            option.filter(isMemberExpression),
             option.exists(isOptionNoneMemberExpression)
           )
         }
@@ -89,7 +100,7 @@ export default createRule({
             node,
             option.of,
             option.map((n) => n.type === AST_NODE_TYPES.ArrowFunctionExpression && n.body.type === AST_NODE_TYPES.CallExpression ? n.body.callee : n),
-            option.filter((n): n is TSESTree.MemberExpression => n.type === AST_NODE_TYPES.MemberExpression),
+            option.filter(isMemberExpression),
             option.exists(
               (body) =>
                 body.object?.type === AST_NODE_TYPES.Identifier && body.object.name === "option"
