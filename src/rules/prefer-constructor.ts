@@ -1,7 +1,7 @@
 import { AST_NODE_TYPES, TSESTree } from "@typescript-eslint/experimental-utils"
 import { option, readonlyNonEmptyArray } from "fp-ts"
 import { constant, flow, pipe } from "fp-ts/function"
-import { calleeIdentifier, contextUtils, createRule } from "../utils"
+import { calleeIdentifier, ContextUtils, contextUtils, createRule, isFromModule } from "../utils"
 
 type isFromFpTs = (identifier: TSESTree.Identifier) => boolean;
 
@@ -65,13 +65,12 @@ const hasPropertyIdentifierWithName = (name: string) => (node: TSESTree.MemberEx
   isIdentifierWithName(name)
 )
 
-const isEitherFold = (node: TSESTree.CallExpression) => pipe(
+const isEitherFold = ({ typeOfNode }: ContextUtils) => (node: TSESTree.CallExpression) => pipe(
   node,
   calleeIdentifier,
   option.filter(hasName("fold")),
-  option.chain(getParent),
-  option.filter(isMemberExpression),
-  option.exists(hasObjectIdentifierWithName("either"))
+  option.chain(typeOfNode),
+  option.exists(isFromModule("Either"))
 )
 
 const isOptionNoneArrowFunctionExpression = (node: TSESTree.ArrowFunctionExpression) => pipe(
@@ -168,14 +167,14 @@ export default createRule({
   },
   defaultOptions: [],
   create(context) {
-    const { isIdentifierImportedFrom } = contextUtils(context)
-    const isFromFpTs = (identifier: TSESTree.Identifier) => isIdentifierImportedFrom(identifier, /fp-ts\//, context)
+    const utils = contextUtils(context)
+    const isFromFpTs = (identifier: TSESTree.Identifier) => utils.isIdentifierImportedFrom(identifier, /fp-ts\//, context)
     return {
       CallExpression(node) {
         pipe(
           node,
           option.of,
-          option.filter(isEitherFold),
+          option.filter(isEitherFold(utils)),
           option.chain(getArguments),
           option.filter(hasLength(2)),
           option.filter(flow(readonlyNonEmptyArray.head, isOptionNone(isFromFpTs))),

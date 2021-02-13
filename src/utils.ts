@@ -8,8 +8,8 @@ import {
 } from "@typescript-eslint/experimental-utils";
 import * as recast from "recast";
 import { visitorKeys as tsVisitorKeys } from "@typescript-eslint/typescript-estree";
-import { array, option, apply } from "fp-ts";
-import { pipe } from "fp-ts/function";
+import { array, option, apply, readonlyNonEmptyArray } from "fp-ts"
+import { flow, pipe } from "fp-ts/function"
 
 import estraverse from "estraverse";
 import {
@@ -31,6 +31,14 @@ declare module "typescript" {
   }
   function toFileNameLowerCase(x: string): string;
 }
+
+const modules = ["Either", "Option"] as const
+
+type Module = typeof modules[number]
+
+const is = <T>(original: T) => (value: unknown): value is T => original === value
+
+const isModule = (name: string): name is Module => modules.includes(name as Module)
 
 const version = require("../package.json").version;
 
@@ -188,6 +196,41 @@ type Quote = "'" | '"';
 export function inferQuote(node: TSESTree.Literal): Quote {
   return node.raw[0] === "'" ? "'" : '"';
 }
+
+const getDeclarationFileName = (declaration: ts.Declaration) => declaration.getSourceFile().fileName
+
+const getDeclarations = flow(
+  (symbol: ts.Symbol) => symbol.getDeclarations(),
+  option.fromNullable,
+  option.chain(readonlyNonEmptyArray.fromArray)
+)
+
+const getFileName = flow(
+  (type: ts.Type) => type.symbol,
+  option.fromNullable,
+  option.chain(getDeclarations),
+  option.map(readonlyNonEmptyArray.head),
+  option.map(getDeclarationFileName)
+)
+
+const getFpTsModule = flow(
+  (fileName: string) => /\/fp-ts\/lib\/(.+?)\.d\.ts$/.exec(fileName),
+  option.fromNullable,
+  option.chain(array.lookup(1)),
+  option.filter(isModule)
+)
+
+const getModule = flow(
+  getFileName,
+  option.chain(getFpTsModule)
+)
+
+export const isFromModule = (module: Module) => flow(
+  getModule,
+  option.exists(is(module))
+)
+
+export type ContextUtils = ReturnType<typeof contextUtils>
 
 export const contextUtils = <
   TMessageIds extends string,

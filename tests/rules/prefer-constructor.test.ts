@@ -1,10 +1,23 @@
-import { stripIndent } from 'common-tags';
-import rule from "../../src/rules/prefer-constructor";
-import { ESLintUtils } from "@typescript-eslint/experimental-utils";
+import { ESLintUtils } from "@typescript-eslint/experimental-utils"
+import { stripIndent } from "common-tags"
+import path from "path"
+import rule from "../../src/rules/prefer-constructor"
+
+const fixtureProjectPath = path.join(
+  __dirname,
+  "..",
+  "fixtures",
+  "fp-ts-project"
+)
 
 const ruleTester = new ESLintUtils.RuleTester({
   parser: "@typescript-eslint/parser",
-});
+  parserOptions: {
+    sourceType: "module",
+    tsconfigRootDir: fixtureProjectPath,
+    project: "./tsconfig.json"
+  }
+})
 
 ruleTester.run("prefer-constructor", rule, {
   valid: [
@@ -72,6 +85,38 @@ ruleTester.run("prefer-constructor", rule, {
           ],
         },
       ],
+    },
+    {
+      code: stripIndent`
+        import * as E from "fp-ts/Either"
+        import option from "fp-ts"
+        import { pipe } from "fp-ts/function"
+
+        pipe(
+          E.of(1),
+          E.fold(() => option.none, (value) => option.some(value))
+        )
+      `,
+      errors: [
+        {
+          messageId: "eitherFoldIsOptionFromEither",
+          suggestions: [
+            {
+              messageId: "replaceEitherFoldWithOptionFromEither",
+              output: stripIndent`
+                import * as E from "fp-ts/Either"
+                import option from "fp-ts"
+                import { pipe } from "fp-ts/function"
+
+                pipe(
+                  E.of(1),
+                  option.fromEither
+                )
+              `
+            }
+          ]
+        }
+      ]
     },
     {
       code: stripIndent`
