@@ -503,6 +503,7 @@ export const contextUtils = <
   }
 
   return {
+    findModuleImport,
     addNamedImportIfNeeded,
     removeImportDeclaration,
     isFlowExpression,

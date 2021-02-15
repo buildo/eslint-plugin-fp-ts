@@ -110,7 +110,7 @@ ruleTester.run("prefer-constructor", rule, {
 
                 pipe(
                   E.of(1),
-                  option.fromEither
+                  O.fromEither
                 )
               `
             }

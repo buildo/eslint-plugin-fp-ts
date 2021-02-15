@@ -82,8 +82,8 @@ const isOptionNone = (utils: ContextUtils) => (node: TSESTree.MemberExpression) 
 const findMemberExpressionFromArrowFunctionExpression = (node: TSESTree.ArrowFunctionExpression) => pipe(
   node.body,
   option.of,
-  option.filter(isMemberExpression),
-);
+  option.filter(isMemberExpression)
+)
 
 const findMemberExpressionFromCallExpression = (utils: ContextUtils) => (node: TSESTree.CallExpression) => pipe(
   node,
@@ -95,7 +95,7 @@ const findMemberExpressionFromCallExpression = (utils: ContextUtils) => (node: T
     option.exists(isFromModule("function"))
   )),
   option.chain(getFirstArgument),
-  option.filter(isMemberExpression),
+  option.filter(isMemberExpression)
 )
 
 const findMemberExpression = (utils: ContextUtils) => (node: TSESTree.Expression) => {
@@ -154,6 +154,13 @@ const isOptionSomeValue = ({ typeOfNode }: ContextUtils) => (node: TSESTree.Expr
   ))
 )
 
+const findNamespace = (utils: ContextUtils) => flow(
+  findMemberExpression(utils),
+  option.map((node) => node.object),
+  option.filter(isIdentifier),
+  option.map((identifier) => identifier.name)
+)
+
 export default createRule({
   name: "prefer-constructor",
   meta: {
@@ -183,7 +190,8 @@ export default createRule({
           option.filter(hasLength(2)),
           option.filter(flow(readonlyNonEmptyArray.head, isCallToOptionNone(utils))),
           option.filter(flow(readonlyNonEmptyArray.last, isOptionSomeValue(utils))),
-          option.map(() => {
+          option.bind("namespace", flow(readonlyNonEmptyArray.head, findNamespace(utils))),
+          option.map(({ namespace }) => {
             context.report({
               loc: {
                 start: node.loc.start,
@@ -197,7 +205,7 @@ export default createRule({
                     return [
                       fixer.replaceTextRange(
                         node.range,
-                        `option.fromEither`
+                        `${namespace}.fromEither`
                       )
                     ]
                   }
