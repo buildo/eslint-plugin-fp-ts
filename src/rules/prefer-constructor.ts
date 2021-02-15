@@ -72,21 +72,20 @@ const isEitherFold = ({ typeOfNode }: ContextUtils) => (node: TSESTree.CallExpre
   option.exists((node) => isFromModule("Either")(node))
 )
 
-const isOptionNoneArrowFunctionExpression = (utils: ContextUtils) => (node: TSESTree.ArrowFunctionExpression) => pipe(
-  node.body,
-  option.of,
-  option.filter(isMemberExpression),
-  option.exists(isOptionNoneMemberExpression(utils))
-)
-
-const isOptionNoneMemberExpression = (utils: ContextUtils) => (node: TSESTree.MemberExpression) => pipe(
+const isOptionNone = (utils: ContextUtils) => (node: TSESTree.MemberExpression) => pipe(
   node,
   option.of,
   option.filter(hasModuleObjectIdentifier(utils)("Option")),
   option.exists(hasPropertyIdentifierWithName("none"))
 )
 
-const isOptionNoneCallExpression = (utils: ContextUtils) => (node: TSESTree.CallExpression) => pipe(
+const findMemberExpressionFromArrowFunctionExpression = (node: TSESTree.ArrowFunctionExpression) => pipe(
+  node.body,
+  option.of,
+  option.filter(isMemberExpression),
+);
+
+const findMemberExpressionFromCallExpression = (utils: ContextUtils) => (node: TSESTree.CallExpression) => pipe(
   node,
   option.of,
   option.filter<TSESTree.CallExpression>(flow(
@@ -97,21 +96,23 @@ const isOptionNoneCallExpression = (utils: ContextUtils) => (node: TSESTree.Call
   )),
   option.chain(getFirstArgument),
   option.filter(isMemberExpression),
-  option.exists(isOptionNoneMemberExpression(utils))
 )
 
-const isOptionNone = (utils: ContextUtils) => (node: TSESTree.Expression) => {
+const findMemberExpression = (utils: ContextUtils) => (node: TSESTree.Expression) => {
   switch (node.type) {
     case AST_NODE_TYPES.ArrowFunctionExpression:
-      return isOptionNoneArrowFunctionExpression(utils)(node)
+      return findMemberExpressionFromArrowFunctionExpression(node)
     case AST_NODE_TYPES.CallExpression:
-      return isOptionNoneCallExpression(utils)(node)
-    case AST_NODE_TYPES.MemberExpression:
-      return isOptionNoneMemberExpression(utils)(node)
+      return findMemberExpressionFromCallExpression(utils)(node)
     default:
-      return false
+      return option.none
   }
 }
+
+const isCallToOptionNone = (utils: ContextUtils) => flow(
+  findMemberExpression(utils),
+  option.exists(isOptionNone(utils))
+)
 
 const getBodyCallee = (node: TSESTree.Expression) => pipe(
   node,
@@ -180,7 +181,7 @@ export default createRule({
           option.filter(isEitherFold(utils)),
           option.chain(getArguments),
           option.filter(hasLength(2)),
-          option.filter(flow(readonlyNonEmptyArray.head, isOptionNone(utils))),
+          option.filter(flow(readonlyNonEmptyArray.head, isCallToOptionNone(utils))),
           option.filter(flow(readonlyNonEmptyArray.last, isOptionSomeValue(utils))),
           option.map(() => {
             context.report({
