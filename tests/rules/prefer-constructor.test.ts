@@ -89,12 +89,12 @@ ruleTester.run("prefer-constructor", rule, {
     {
       code: stripIndent`
         import * as E from "fp-ts/Either"
-        import option from "fp-ts"
+        import * as O from "fp-ts/Option"
         import { pipe } from "fp-ts/function"
 
         pipe(
           E.of(1),
-          E.fold(() => option.none, (value) => option.some(value))
+          E.fold(() => O.none, (value) => O.some(value))
         )
       `,
       errors: [
@@ -105,7 +105,7 @@ ruleTester.run("prefer-constructor", rule, {
               messageId: "replaceEitherFoldWithOptionFromEither",
               output: stripIndent`
                 import * as E from "fp-ts/Either"
-                import option from "fp-ts"
+                import * as O from "fp-ts/Option"
                 import { pipe } from "fp-ts/function"
 
                 pipe(

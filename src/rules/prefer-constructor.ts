@@ -1,9 +1,7 @@
 import { AST_NODE_TYPES, TSESTree } from "@typescript-eslint/experimental-utils"
 import { option, readonlyNonEmptyArray } from "fp-ts"
 import { constant, flow, pipe } from "fp-ts/function"
-import { calleeIdentifier, ContextUtils, contextUtils, createRule, isFromModule } from "../utils"
-
-type isFromFpTs = (identifier: TSESTree.Identifier) => boolean;
+import { calleeIdentifier, ContextUtils, contextUtils, createRule, isFromModule, Module } from "../utils"
 
 const hasName = (name: string) => (identifier: TSESTree.Identifier) => identifier.name === name
 
@@ -55,9 +53,10 @@ const isIdentifierWithName = (name: string) => (node: TSESTree.Node) => pipe(
   option.exists(hasName(name))
 )
 
-const hasObjectIdentifierWithName = (name: string) => (node: TSESTree.MemberExpression) => pipe(
+const hasModuleObjectIdentifier = ({ typeOfNode }: ContextUtils) => (name: Module) => (node: TSESTree.MemberExpression) => pipe(
   node.object,
-  isIdentifierWithName(name)
+  typeOfNode,
+  option.exists(isFromModule(name))
 )
 
 const hasPropertyIdentifierWithName = (name: string) => (node: TSESTree.MemberExpression) => pipe(
@@ -68,46 +67,47 @@ const hasPropertyIdentifierWithName = (name: string) => (node: TSESTree.MemberEx
 const isEitherFold = ({ typeOfNode }: ContextUtils) => (node: TSESTree.CallExpression) => pipe(
   node,
   calleeIdentifier,
-  option.filter(hasName("fold")),
+  option.filter((node) => hasName("fold")(node)),
   option.chain(typeOfNode),
-  option.exists(isFromModule("Either"))
+  option.exists((node) => isFromModule("Either")(node))
 )
 
-const isOptionNoneArrowFunctionExpression = (node: TSESTree.ArrowFunctionExpression) => pipe(
+const isOptionNoneArrowFunctionExpression = (utils: ContextUtils) => (node: TSESTree.ArrowFunctionExpression) => pipe(
   node.body,
   option.of,
   option.filter(isMemberExpression),
-  option.exists(isOptionNoneMemberExpression)
+  option.exists(isOptionNoneMemberExpression(utils))
 )
 
-const isOptionNoneMemberExpression = (node: TSESTree.MemberExpression) => pipe(
+const isOptionNoneMemberExpression = (utils: ContextUtils) => (node: TSESTree.MemberExpression) => pipe(
   node,
   option.of,
-  option.filter(hasObjectIdentifierWithName("option")),
+  option.filter(hasModuleObjectIdentifier(utils)("Option")),
   option.exists(hasPropertyIdentifierWithName("none"))
 )
 
-const isOptionNoneCallExpression = (isFromFpTs: isFromFpTs) => (node: TSESTree.CallExpression) => pipe(
+const isOptionNoneCallExpression = (utils: ContextUtils) => (node: TSESTree.CallExpression) => pipe(
   node,
   option.of,
   option.filter<TSESTree.CallExpression>(flow(
     calleeIdentifier,
     option.filter(hasName("constant")),
-    option.exists(isFromFpTs)
+    option.chain(utils.typeOfNode),
+    option.exists(isFromModule("function"))
   )),
   option.chain(getFirstArgument),
   option.filter(isMemberExpression),
-  option.exists(isOptionNoneMemberExpression)
+  option.exists(isOptionNoneMemberExpression(utils))
 )
 
-const isOptionNone = (isFromFpTs: isFromFpTs) => (node: TSESTree.Expression) => {
+const isOptionNone = (utils: ContextUtils) => (node: TSESTree.Expression) => {
   switch (node.type) {
     case AST_NODE_TYPES.ArrowFunctionExpression:
-      return isOptionNoneArrowFunctionExpression(node)
+      return isOptionNoneArrowFunctionExpression(utils)(node)
     case AST_NODE_TYPES.CallExpression:
-      return isOptionNoneCallExpression(isFromFpTs)(node)
+      return isOptionNoneCallExpression(utils)(node)
     case AST_NODE_TYPES.MemberExpression:
-      return isOptionNoneMemberExpression(node)
+      return isOptionNoneMemberExpression(utils)(node)
     default:
       return false
   }
@@ -128,13 +128,17 @@ const getBodyCalleeOrNode = (node: TSESTree.Expression) => pipe(
   option.getOrElse(constant(node))
 )
 
-const isOptionSomeValue = (node: TSESTree.Expression) => pipe(
+const isOptionSomeValue = ({ typeOfNode }: ContextUtils) => (node: TSESTree.Expression) => pipe(
   node,
   getBodyCalleeOrNode,
   option.of,
   option.filter(isMemberExpression),
-  option.filter(hasObjectIdentifierWithName("option")),
   option.filter(hasPropertyIdentifierWithName("some")),
+  option.filter(flow(
+    (node) => node.object,
+    typeOfNode,
+    option.exists(isFromModule("Option"))
+  )),
   option.chain(getParent),
   option.exists((parent) => (
     !isCallExpression(parent)
@@ -168,7 +172,6 @@ export default createRule({
   defaultOptions: [],
   create(context) {
     const utils = contextUtils(context)
-    const isFromFpTs = (identifier: TSESTree.Identifier) => utils.isIdentifierImportedFrom(identifier, /fp-ts\//, context)
     return {
       CallExpression(node) {
         pipe(
@@ -177,8 +180,8 @@ export default createRule({
           option.filter(isEitherFold(utils)),
           option.chain(getArguments),
           option.filter(hasLength(2)),
-          option.filter(flow(readonlyNonEmptyArray.head, isOptionNone(isFromFpTs))),
-          option.filter(flow(readonlyNonEmptyArray.last, isOptionSomeValue)),
+          option.filter(flow(readonlyNonEmptyArray.head, isOptionNone(utils))),
+          option.filter(flow(readonlyNonEmptyArray.last, isOptionSomeValue(utils))),
           option.map(() => {
             context.report({
               loc: {

@@ -32,9 +32,9 @@ declare module "typescript" {
   function toFileNameLowerCase(x: string): string;
 }
 
-const modules = ["Either", "Option"] as const
+const modules = ["Either", "Option", "function"] as const
 
-type Module = typeof modules[number]
+export type Module = typeof modules[number]
 
 const is = <T>(original: T) => (value: unknown): value is T => original === value
 
