@@ -52,6 +52,8 @@ export type Callee =
   | TSESTree.MemberExpression
   | TSESTree.Identifier
 
+export const isCallee = (node: TSESTree.Node): node is Callee => isWithinTypes(node, [AST_NODE_TYPES.CallExpression, AST_NODE_TYPES.MemberExpression, AST_NODE_TYPES.Identifier])
+
 export function calleeIdentifier(node: Callee): option.Option<TSESTree.Identifier> {
   switch (node.type) {
     case AST_NODE_TYPES.MemberExpression:
