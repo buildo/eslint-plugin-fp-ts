@@ -206,7 +206,7 @@ const getDeclarations = flow(
 )
 
 const getFileName = flow(
-  (type: ts.Type) => type.symbol,
+  (type: ts.Type) => type.aliasSymbol ?? type.symbol,
   option.fromNullable,
   option.chain(getDeclarations),
   option.map(readonlyNonEmptyArray.head),

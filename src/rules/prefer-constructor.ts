@@ -53,30 +53,25 @@ const isIdentifierWithName = (name: string) => (node: TSESTree.Node) => pipe(
   option.exists(hasName(name))
 )
 
-const hasModuleObjectIdentifier = ({ typeOfNode }: ContextUtils) => (name: Module) => (node: TSESTree.MemberExpression) => pipe(
-  node.object,
-  typeOfNode,
-  option.exists(isFromModule(name))
-)
-
 const hasPropertyIdentifierWithName = (name: string) => (node: TSESTree.MemberExpression) => pipe(
   node.property,
   isIdentifierWithName(name)
 )
 
-const isEitherFold = ({ typeOfNode }: ContextUtils) => (node: TSESTree.CallExpression) => pipe(
+const isCall = ({ typeOfNode }: ContextUtils, module: Module, name: string) => (node: TSESTree.CallExpression) => pipe(
   node,
   calleeIdentifier,
-  option.filter((node) => hasName("fold")(node)),
+  option.filter(hasName(name)),
   option.chain(typeOfNode),
-  option.exists((node) => isFromModule("Either")(node))
+  option.exists(isFromModule(module))
 )
 
-const isOptionNone = (utils: ContextUtils) => (node: TSESTree.MemberExpression) => pipe(
+const isValue = ({ typeOfNode }: ContextUtils, module: Module, name: string) => (node: TSESTree.MemberExpression) => pipe(
   node,
   option.of,
-  option.filter(hasModuleObjectIdentifier(utils)("Option")),
-  option.exists(hasPropertyIdentifierWithName("none"))
+  option.filter(hasPropertyIdentifierWithName(name)),
+  option.chain(typeOfNode),
+  option.exists(isFromModule(module))
 )
 
 const findMemberExpressionFromArrowFunctionExpression = (node: TSESTree.ArrowFunctionExpression) => pipe(
@@ -111,7 +106,7 @@ const findMemberExpression = (utils: ContextUtils) => (node: TSESTree.Expression
 
 const isCallToOptionNone = (utils: ContextUtils) => flow(
   findMemberExpression(utils),
-  option.exists(isOptionNone(utils))
+  option.exists(isValue(utils, "Option", "none"))
 )
 
 const getBodyCallee = (node: TSESTree.Expression) => pipe(
@@ -185,7 +180,7 @@ export default createRule({
         pipe(
           node,
           option.of,
-          option.filter(isEitherFold(utils)),
+          option.filter(isCall(utils, "Either", "fold")),
           option.chain(getArguments),
           option.filter(hasLength(2)),
           option.filter(flow(readonlyNonEmptyArray.head, isCallToOptionNone(utils))),
