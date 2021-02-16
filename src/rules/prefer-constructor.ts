@@ -1,5 +1,5 @@
 import { AST_NODE_TYPES, TSESTree } from "@typescript-eslint/experimental-utils"
-import { option, readonlyNonEmptyArray } from "fp-ts"
+import { option, readonlyArray, readonlyNonEmptyArray } from "fp-ts"
 import { constant, flow, pipe } from "fp-ts/function"
 import { calleeIdentifier, ContextUtils, contextUtils, createRule, isCallee, isFromModule, Module } from "../utils"
 
@@ -50,20 +50,15 @@ const hasPropertyIdentifierWithName = (name: string) => (node: TSESTree.MemberEx
 )
 
 const getWrappedCall = (node: TSESTree.ArrowFunctionExpression) => pipe(
-  option.Do,
-  option.bind("wrappedCall", () => pipe(
-    node.body,
+  node.body,
+  option.of,
+  option.filter(isCallExpression),
+  option.filter(flow(
     option.of,
-    option.filter(isCallExpression)
-  )),
-  option.bind("param", () => pipe(node, getFirstParam, option.filter(isIdentifier))),
-  option.bind("argument", ({ wrappedCall }) => pipe(
-    wrappedCall,
-    getFirstArgument,
-    option.filter(isIdentifier)
-  )),
-  option.filter(({ argument, param }) => hasName(argument.name)(param)),
-  option.map(({ wrappedCall }) => wrappedCall)
+    option.bindTo("call"),
+    option.bind("param", () => pipe(node, getFirstParam, option.filter(isIdentifier))),
+    option.exists(({ call, param }) => pipe(call, hasArguments([isIdentifierWithName(param.name)])))
+  ))
 )
 
 const isCall = <T extends TSESTree.Node>(utils: ContextUtils, module: Module, name: string) => (node: T) => pipe(
@@ -135,6 +130,21 @@ const findNamespace = (utils: ContextUtils) => flow(
   option.map((identifier) => identifier.name)
 )
 
+const hasArguments = (args: ReadonlyArray<(node: TSESTree.Expression) => boolean>) => flow(
+  ensureArguments(args),
+  option.isSome
+)
+
+const ensureArguments = (args: ReadonlyArray<(node: TSESTree.Expression) => boolean>) => flow(
+  getArguments,
+  option.filter(pipe(args.length, hasLength)),
+  option.chain(
+    readonlyNonEmptyArray.traverseWithIndex(option.option)(
+      (i, value) => pipe(args, readonlyArray.lookup(i), option.filter(test => test(value)), option.map(constant(value)))
+    )
+  )
+)
+
 export default createRule({
   name: "prefer-constructor",
   meta: {
@@ -160,10 +170,10 @@ export default createRule({
           node,
           option.of,
           option.filter(isCall(utils, "Either", "fold")),
-          option.chain(getArguments),
-          option.filter(hasLength(2)),
-          option.filter(flow(readonlyNonEmptyArray.head, isLazyValue(utils, "Option", "none"))),
-          option.filter(flow(readonlyNonEmptyArray.last, isCall(utils, "Option", "some"))),
+          option.chain(ensureArguments([
+            isLazyValue(utils, "Option", "none"),
+            isCall(utils, "Option", "some")
+          ])),
           option.bind("namespace", flow(readonlyNonEmptyArray.head, findNamespace(utils))),
           option.map(({ namespace }) => {
             context.report({
