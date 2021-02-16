@@ -1,7 +1,7 @@
 import { AST_NODE_TYPES, TSESTree } from "@typescript-eslint/experimental-utils"
 import { option, readonlyNonEmptyArray } from "fp-ts"
 import { constant, flow, pipe } from "fp-ts/function"
-import { calleeIdentifier, ContextUtils, contextUtils, createRule, isFromModule, Module } from "../utils"
+import { Callee, calleeIdentifier, ContextUtils, contextUtils, createRule, isFromModule, Module } from "../utils"
 
 const hasName = (name: string) => (identifier: TSESTree.Identifier) => identifier.name === name
 
@@ -58,7 +58,7 @@ const hasPropertyIdentifierWithName = (name: string) => (node: TSESTree.MemberEx
   isIdentifierWithName(name)
 )
 
-const isCall = ({ typeOfNode }: ContextUtils, module: Module, name: string) => (node: TSESTree.CallExpression) => pipe(
+const isCall = <T extends Callee>({ typeOfNode }: ContextUtils, module: Module, name: string) => (node: T) => pipe(
   node,
   calleeIdentifier,
   option.filter(hasName(name)),
@@ -127,17 +127,12 @@ const getBodyCalleeOrNode = (node: TSESTree.Expression) => pipe(
   option.getOrElse(constant(node))
 )
 
-const isOptionSomeValue = ({ typeOfNode }: ContextUtils) => (node: TSESTree.Expression) => pipe(
+const isOptionSomeValue = (utils: ContextUtils) => (node: TSESTree.Expression) => pipe(
   node,
   getBodyCalleeOrNode,
   option.of,
   option.filter(isMemberExpression),
-  option.filter(hasPropertyIdentifierWithName("some")),
-  option.filter(flow(
-    (node) => node.object,
-    typeOfNode,
-    option.exists(isFromModule("Option"))
-  )),
+  option.filter(isCall(utils, "Option", "some")),
   option.chain(getParent),
   option.exists((parent) => (
     !isCallExpression(parent)

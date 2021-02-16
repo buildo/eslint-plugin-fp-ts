@@ -47,12 +47,12 @@ export const createRule = ESLintUtils.RuleCreator(
     `https://github.com/buildo/eslint-plugin-fp-ts/blob/v${version}/docs/rules/${name}.md`
 );
 
-export function calleeIdentifier(
-  node:
-    | TSESTree.CallExpression
-    | TSESTree.MemberExpression
-    | TSESTree.Identifier
-): option.Option<TSESTree.Identifier> {
+export type Callee =
+  | TSESTree.CallExpression
+  | TSESTree.MemberExpression
+  | TSESTree.Identifier
+
+export function calleeIdentifier(node: Callee): option.Option<TSESTree.Identifier> {
   switch (node.type) {
     case AST_NODE_TYPES.MemberExpression:
       if (node.property.type === AST_NODE_TYPES.Identifier) {
