@@ -1,28 +1,17 @@
 import { AST_NODE_TYPES, TSESTree } from "@typescript-eslint/experimental-utils"
 import { option, readonlyNonEmptyArray } from "fp-ts"
-import { constant, flow, pipe } from "fp-ts/function"
+import { flow, pipe } from "fp-ts/function"
 import { Callee, calleeIdentifier, ContextUtils, contextUtils, createRule, isFromModule, Module } from "../utils"
 
 const hasName = (name: string) => (identifier: TSESTree.Identifier) => identifier.name === name
 
 const hasLength = (length: number) => <T>(array: ReadonlyArray<T>) => array.length === length
 
-const isArrowFunctionExpression = (node: TSESTree.Node): node is TSESTree.ArrowFunctionExpression => node.type === AST_NODE_TYPES.ArrowFunctionExpression
-
-const isFunctionExpression = (node: TSESTree.Node): node is TSESTree.FunctionExpression => node.type === AST_NODE_TYPES.FunctionExpression
-
-const isFunctionLike = (node: TSESTree.Node): node is TSESTree.FunctionLike => isArrowFunctionExpression(node) || isFunctionExpression(node)
-
 const isCallExpression = (node: TSESTree.Node): node is TSESTree.CallExpression => node.type === AST_NODE_TYPES.CallExpression
 
 const isMemberExpression = (node: TSESTree.Node): node is TSESTree.MemberExpression => node.type === AST_NODE_TYPES.MemberExpression
 
 const isIdentifier = (node: TSESTree.Node): node is TSESTree.Identifier => node.type === AST_NODE_TYPES.Identifier
-
-const getParent = (identifier: TSESTree.BaseNode) => pipe(
-  identifier.parent,
-  option.fromNullable
-)
 
 const getArguments = (call: TSESTree.CallExpression) => pipe(
   call.arguments,
@@ -112,40 +101,33 @@ const findMemberExpression = (utils: ContextUtils) => (node: TSESTree.Expression
   }
 }
 
-const getBodyCallee = (node: TSESTree.Expression) => pipe(
-  node,
-  option.of,
-  option.filter(isArrowFunctionExpression),
-  option.map((f) => f.body),
-  option.filter(isCallExpression),
-  option.map((e) => e.callee)
+const getWrappedCall = (node: TSESTree.ArrowFunctionExpression) => pipe(
+  option.Do,
+  option.bind("wrappedCall", () => pipe(
+    node.body,
+    option.of,
+    option.filter(isCallExpression)
+  )),
+  option.bind("param", () => pipe(node, getFirstParam, option.filter(isIdentifier))),
+  option.bind("argument", ({ wrappedCall }) => pipe(
+    wrappedCall,
+    getFirstArgument,
+    option.filter(isIdentifier)
+  )),
+  option.filter(({ argument, param }) => hasName(argument.name)(param)),
+  option.map(({ wrappedCall }) => wrappedCall)
 )
 
-const getBodyCalleeOrNode = (node: TSESTree.Expression) => pipe(
-  node,
-  getBodyCallee,
-  option.getOrElse(constant(node))
-)
-
-const isOptionSomeValue = (utils: ContextUtils) => (node: TSESTree.Expression) => pipe(
-  node,
-  getBodyCalleeOrNode,
-  option.of,
-  option.filter(isMemberExpression),
-  option.filter(isCall(utils, "Option", "some")),
-  option.chain(getParent),
-  option.exists((parent) => (
-    !isCallExpression(parent)
-    || !(parent.parent)
-    || !isArrowFunctionExpression(parent.parent)
-    || pipe(
-      option.Do,
-      option.bind("argument", () => pipe(parent, getFirstArgument, option.filter(isIdentifier))),
-      option.bind("param", () => pipe(parent, getParent, option.filter(isFunctionLike), option.chain(getFirstParam), option.filter(isIdentifier))),
-      option.exists(({ argument, param }) => hasName(argument.name)(param))
-    )
-  ))
-)
+const isOptionSomeValue = (utils: ContextUtils) => (node: TSESTree.Expression) => {
+  switch (node.type) {
+    case AST_NODE_TYPES.ArrowFunctionExpression:
+      return pipe(node, getWrappedCall, option.exists(isCall(utils, "Option", "some")))
+    case AST_NODE_TYPES.MemberExpression:
+      return pipe(node, isCall(utils, "Option", "some"))
+    default:
+      return false
+  }
+}
 
 const findNamespace = (utils: ContextUtils) => flow(
   findMemberExpression(utils),
