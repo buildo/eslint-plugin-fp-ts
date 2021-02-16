@@ -66,6 +66,11 @@ const isCall = ({ typeOfNode }: ContextUtils, module: Module, name: string) => (
   option.exists(isFromModule(module))
 )
 
+const isLazyValue = (utils: ContextUtils, module: Module, name: string) => flow(
+  findMemberExpression(utils),
+  option.exists(isValue(utils, module, name))
+)
+
 const isValue = ({ typeOfNode }: ContextUtils, module: Module, name: string) => (node: TSESTree.MemberExpression) => pipe(
   node,
   option.of,
@@ -80,15 +85,18 @@ const findMemberExpressionFromArrowFunctionExpression = (node: TSESTree.ArrowFun
   option.filter(isMemberExpression)
 )
 
+const isConstantCall = ({ typeOfNode }: ContextUtils) => (node: TSESTree.CallExpression) => pipe(
+  node,
+  calleeIdentifier,
+  option.filter(hasName("constant")),
+  option.chain(typeOfNode),
+  option.exists(isFromModule("function"))
+)
+
 const findMemberExpressionFromCallExpression = (utils: ContextUtils) => (node: TSESTree.CallExpression) => pipe(
   node,
   option.of,
-  option.filter<TSESTree.CallExpression>(flow(
-    calleeIdentifier,
-    option.filter(hasName("constant")),
-    option.chain(utils.typeOfNode),
-    option.exists(isFromModule("function"))
-  )),
+  option.filter(isConstantCall(utils)),
   option.chain(getFirstArgument),
   option.filter(isMemberExpression)
 )
@@ -103,11 +111,6 @@ const findMemberExpression = (utils: ContextUtils) => (node: TSESTree.Expression
       return option.none
   }
 }
-
-const isCallToOptionNone = (utils: ContextUtils) => flow(
-  findMemberExpression(utils),
-  option.exists(isValue(utils, "Option", "none"))
-)
 
 const getBodyCallee = (node: TSESTree.Expression) => pipe(
   node,
@@ -183,7 +186,7 @@ export default createRule({
           option.filter(isCall(utils, "Either", "fold")),
           option.chain(getArguments),
           option.filter(hasLength(2)),
-          option.filter(flow(readonlyNonEmptyArray.head, isCallToOptionNone(utils))),
+          option.filter(flow(readonlyNonEmptyArray.head, isLazyValue(utils, "Option", "none"))),
           option.filter(flow(readonlyNonEmptyArray.last, isOptionSomeValue(utils))),
           option.bind("namespace", flow(readonlyNonEmptyArray.head, findNamespace(utils))),
           option.map(({ namespace }) => {
