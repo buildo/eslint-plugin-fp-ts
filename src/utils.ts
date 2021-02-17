@@ -8,8 +8,8 @@ import {
 } from "@typescript-eslint/experimental-utils";
 import * as recast from "recast";
 import { visitorKeys as tsVisitorKeys } from "@typescript-eslint/typescript-estree";
-import { array, option, apply, readonlyNonEmptyArray } from "fp-ts"
-import { flow, pipe } from "fp-ts/function"
+import { array, option, apply, readonlyArray, readonlyNonEmptyArray } from "fp-ts";
+import { constant, flow, pipe } from "fp-ts/function";
 
 import estraverse from "estraverse";
 import {
@@ -52,8 +52,6 @@ export type Callee =
   | TSESTree.MemberExpression
   | TSESTree.Identifier
 
-export const isCallee = (node: TSESTree.Node): node is Callee => isWithinTypes(node, [AST_NODE_TYPES.CallExpression, AST_NODE_TYPES.MemberExpression, AST_NODE_TYPES.Identifier])
-
 export function calleeIdentifier(node: Callee): option.Option<TSESTree.Identifier> {
   switch (node.type) {
     case AST_NODE_TYPES.MemberExpression:
@@ -79,12 +77,17 @@ export function calleeIdentifier(node: Callee): option.Option<TSESTree.Identifie
   }
 }
 
-function isWithinTypes<N extends TSESTree.Node>(
-  n: TSESTree.Node | undefined,
-  types: N["type"][]
-): n is N {
-  return !!n && types.includes(n.type);
-}
+const isWithinTypes = <T extends TSESTree.Node>(types: T["type"][]) => (node: TSESTree.Node): node is T => types.includes(node.type)
+
+const isArrowFunctionExpression = isWithinTypes<TSESTree.ArrowFunctionExpression>([AST_NODE_TYPES.ArrowFunctionExpression])
+
+const isCallExpression = isWithinTypes<TSESTree.CallExpression>([AST_NODE_TYPES.CallExpression])
+
+const isCallee = isWithinTypes<Callee>([AST_NODE_TYPES.CallExpression, AST_NODE_TYPES.MemberExpression, AST_NODE_TYPES.Identifier])
+
+const isIdentifier = isWithinTypes<TSESTree.Identifier>([AST_NODE_TYPES.Identifier])
+
+const isMemberExpression = isWithinTypes<TSESTree.MemberExpression>([AST_NODE_TYPES.MemberExpression])
 
 type CombinatorNode =
   | TSESTree.CallExpression
@@ -114,11 +117,11 @@ export function getAdjacentCombinators<
   const firstCombinatorIndex = pipeOrFlowExpression.arguments.findIndex(
     (a, index) => {
       if (
-        isWithinTypes(a, combinator1.types) &&
+        isWithinTypes(combinator1.types)(a) &&
         index < pipeOrFlowExpression.arguments.length - 1
       ) {
         const b = pipeOrFlowExpression.arguments[index + 1];
-        if (isWithinTypes(b, combinator2.types)) {
+        if (b && isWithinTypes(combinator2.types)(b)) {
           return pipe(
             apply.sequenceS(option.option)({
               idA: calleeIdentifier(a),
@@ -230,6 +233,140 @@ const getModule = flow(
 export const isFromModule = (module: Module) => flow(
   getModule,
   option.exists(is(module))
+)
+
+const hasName = (name: string) => (identifier: TSESTree.Identifier) => identifier.name === name
+
+const hasLength = (length: number) => <T>(array: ReadonlyArray<T>) => array.length === length
+
+const getArguments = (call: TSESTree.CallExpression) => pipe(
+  call.arguments,
+  readonlyNonEmptyArray.fromArray
+)
+
+const getFirstArgument = (call: TSESTree.CallExpression) => pipe(
+  call,
+  getArguments,
+  option.map(readonlyNonEmptyArray.head)
+)
+
+const getParams = (call: TSESTree.FunctionLike) => pipe(
+  call.params,
+  readonlyNonEmptyArray.fromArray
+)
+
+const getFirstParam = (call: TSESTree.FunctionLike) => pipe(
+  call,
+  getParams,
+  option.map(readonlyNonEmptyArray.head)
+)
+
+const isIdentifierWithName = (name: string) => (node: TSESTree.Node) => pipe(
+  node,
+  option.of,
+  option.filter(isIdentifier),
+  option.exists(hasName(name))
+)
+
+const hasPropertyIdentifierWithName = (name: string) => (node: TSESTree.MemberExpression) => pipe(
+  node.property,
+  isIdentifierWithName(name)
+)
+
+const getWrappedCall = (node: TSESTree.ArrowFunctionExpression) => pipe(
+  node.body,
+  option.of,
+  option.filter(isCallExpression),
+  option.filter(flow(
+    option.of,
+    option.bindTo("call"),
+    option.bind("param", () => pipe(node, getFirstParam, option.filter(isIdentifier))),
+    option.exists(({ call, param }) => pipe(call, hasArguments([isIdentifierWithName(param.name)])))
+  ))
+)
+
+export const isCall = <T extends TSESTree.Node>(utils: ContextUtils, module: Module, name: string) => (node: T) => pipe(
+  node,
+  option.fromPredicate(isArrowFunctionExpression),
+  option.chain(getWrappedCall),
+  option.altW(constant(option.some(node))),
+  option.filter(isCallee),
+  option.exists(isCallTo(utils, module, name))
+)
+
+const isCallTo = ({ typeOfNode }: ContextUtils, module: Module, name: string) => flow(
+  calleeIdentifier,
+  option.filter(hasName(name)),
+  option.chain(typeOfNode),
+  option.exists(isFromModule(module))
+)
+
+export const isLazyValue = (utils: ContextUtils, module: Module, name: string) => flow(
+  findMemberExpression(utils),
+  option.exists(isValue(utils, module, name))
+)
+
+const isValue = ({ typeOfNode }: ContextUtils, module: Module, name: string) => (node: TSESTree.MemberExpression) => pipe(
+  node,
+  option.of,
+  option.filter(hasPropertyIdentifierWithName(name)),
+  option.chain(typeOfNode),
+  option.exists(isFromModule(module))
+)
+
+const findMemberExpressionFromArrowFunctionExpression = (node: TSESTree.ArrowFunctionExpression) => pipe(
+  node.body,
+  option.of,
+  option.filter(isMemberExpression)
+)
+
+const isConstantCall = ({ typeOfNode }: ContextUtils) => (node: TSESTree.CallExpression) => pipe(
+  node,
+  calleeIdentifier,
+  option.filter(hasName("constant")),
+  option.chain(typeOfNode),
+  option.exists(isFromModule("function"))
+)
+
+const findMemberExpressionFromCallExpression = (utils: ContextUtils) => (node: TSESTree.CallExpression) => pipe(
+  node,
+  option.of,
+  option.filter(isConstantCall(utils)),
+  option.chain(getFirstArgument),
+  option.filter(isMemberExpression)
+)
+
+const findMemberExpression = (utils: ContextUtils) => (node: TSESTree.Expression) => {
+  switch (node.type) {
+    case AST_NODE_TYPES.ArrowFunctionExpression:
+      return findMemberExpressionFromArrowFunctionExpression(node)
+    case AST_NODE_TYPES.CallExpression:
+      return findMemberExpressionFromCallExpression(utils)(node)
+    default:
+      return option.none
+  }
+}
+
+const hasArguments = (args: ReadonlyArray<(node: TSESTree.Expression) => boolean>) => flow(
+  ensureArguments(args),
+  option.isSome
+)
+
+export const ensureArguments = (args: ReadonlyArray<(node: TSESTree.Expression) => boolean>) => flow(
+  getArguments,
+  option.filter(pipe(args.length, hasLength)),
+  option.chain(
+    readonlyNonEmptyArray.traverseWithIndex(option.option)(
+      (i, value) => pipe(args, readonlyArray.lookup(i), option.filter(test => test(value)), option.map(constant(value)))
+    )
+  )
+)
+
+export const findNamespace = (utils: ContextUtils) => flow(
+  findMemberExpression(utils),
+  option.map((node) => node.object),
+  option.filter(isIdentifier),
+  option.map((identifier) => identifier.name)
 )
 
 export type ContextUtils = ReturnType<typeof contextUtils>
@@ -505,7 +642,6 @@ export const contextUtils = <
   }
 
   return {
-    findModuleImport,
     addNamedImportIfNeeded,
     removeImportDeclaration,
     isFlowExpression,
