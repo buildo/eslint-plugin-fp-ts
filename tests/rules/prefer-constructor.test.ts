@@ -30,7 +30,7 @@ ruleTester.run("prefer-constructor", rule, {
           either.of(1),
           either.fold(() => option.none, (value) => option.some(otherValue))
         )
-      `,
+      `
     },
     {
       code: stripIndent`
@@ -41,7 +41,7 @@ ruleTester.run("prefer-constructor", rule, {
           either.of(1),
           either.fold(() => option.some(otherValue), (value) => option.some(value))
         )
-      `,
+      `
     },
     {
       code: stripIndent`
@@ -52,8 +52,8 @@ ruleTester.run("prefer-constructor", rule, {
           either.of(1),
           either.fold(() => option.some(otherValue), () => option.none)
         )
-      `,
-    },
+      `
+    }
   ],
   invalid: [
     {
@@ -80,11 +80,11 @@ ruleTester.run("prefer-constructor", rule, {
                   either.of(1),
                   option.fromEither
                 )
-              `,
-            },
-          ],
-        },
-      ],
+              `
+            }
+          ]
+        }
+      ]
     },
     {
       code: stripIndent`
@@ -142,11 +142,11 @@ ruleTester.run("prefer-constructor", rule, {
                   either.of(1),
                   option.fromEither
                 )
-              `,
-            },
-          ],
-        },
-      ],
+              `
+            }
+          ]
+        }
+      ]
     },
     {
       code: stripIndent`
@@ -172,11 +172,11 @@ ruleTester.run("prefer-constructor", rule, {
                   either.of(1),
                   option.fromEither
                 )
-              `,
-            },
-          ],
-        },
-      ],
-    },
-  ],
-});
+              `
+            }
+          ]
+        }
+      ]
+    }
+  ]
+})

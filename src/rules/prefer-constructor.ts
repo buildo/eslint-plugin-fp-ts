@@ -26,9 +26,9 @@ export default createRule({
         pipe(
           node,
           option.of,
-          option.filter(isCall( "Either", "fold")),
+          option.filter(isCall("Either", "fold")),
           option.chain(ensureArguments([
-            isLazyValue( "Option", "none"),
+            isLazyValue("Option", "none"),
             isCall("Option", "some")
           ])),
           option.bind("namespace", flow(readonlyNonEmptyArray.head, findNamespace)),
