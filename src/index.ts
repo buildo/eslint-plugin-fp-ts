@@ -14,6 +14,7 @@ const suggestions = {
   "no-redundant-flow": require("./rules/no-redundant-flow").default,
   "prefer-chain": require("./rules/prefer-chain").default,
   "prefer-bimap": require("./rules/prefer-bimap").default,
+  "prefer-constructor": require("./rules/prefer-constructor").default
 };
 
 export const rules = {

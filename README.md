@@ -74,6 +74,7 @@ If your project is a multi-package monorepo, you can follow the instructions
 | [fp-ts/prefer-chain](docs/rules/prefer-chain.md)                                 | Replace `map` + `flatten` with `chain`                                                     |   💡    |                        |
 | [fp-ts/prefer-bimap](docs/rules/prefer-bimap.md)                                 | Replace `map` + `mapLeft` with `bimap`                                                     |   💡    |                        |
 | [fp-ts/no-discarded-pure-expression](docs/rules/no-discarded-pure-expression.md) | Disallow expressions returning pure data types (like `Task` or `IO`) in statement position |   💡    |           🦄           |
+| [fp-ts/prefer-constructor](docs/rules/prefer-constructor.md)                     | Replace destructors with constructors                                                      |   💡    |           🦄           |
 
 ### Fixable legend:
 

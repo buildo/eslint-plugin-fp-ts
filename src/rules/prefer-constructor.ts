@@ -10,12 +10,12 @@ export default createRule({
     schema: [],
     docs: {
       category: "Best Practices",
-      description: "afsafaf",
+      description: "Replace destructor + constructors with a constructor",
       recommended: "warn"
     },
     messages: {
-      eitherFoldIsOptionFromEither: "cacsaffg",
-      replaceEitherFoldWithOptionFromEither: "dsagdgdsg"
+      eitherFoldIsOptionFromEither: "Either.fold can be replaced with Option.fromEither",
+      replaceEitherFoldWithOptionFromEither: "replace Either.fold with Option.fromEither"
     }
   },
   defaultOptions: [],
