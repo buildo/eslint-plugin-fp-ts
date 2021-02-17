@@ -1,6 +1,6 @@
 import { option, readonlyNonEmptyArray } from "fp-ts"
 import { flow, pipe } from "fp-ts/function"
-import { contextUtils, createRule, ensureArguments, findNamespace, isCall, isLazyValue } from "../utils"
+import { contextUtils, createRule, ensureArguments } from "../utils"
 
 export default createRule({
   name: "prefer-constructor",
@@ -20,18 +20,18 @@ export default createRule({
   },
   defaultOptions: [],
   create(context) {
-    const utils = contextUtils(context)
+    const { findNamespace, isCall, isLazyValue } = contextUtils(context)
     return {
       CallExpression(node) {
         pipe(
           node,
           option.of,
-          option.filter(isCall(utils, "Either", "fold")),
+          option.filter(isCall( "Either", "fold")),
           option.chain(ensureArguments([
-            isLazyValue(utils, "Option", "none"),
-            isCall(utils, "Option", "some")
+            isLazyValue( "Option", "none"),
+            isCall("Option", "some")
           ])),
-          option.bind("namespace", flow(readonlyNonEmptyArray.head, findNamespace(utils))),
+          option.bind("namespace", flow(readonlyNonEmptyArray.head, findNamespace)),
           option.map(({ namespace }) => {
             context.report({
               loc: {

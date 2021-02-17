@@ -285,67 +285,11 @@ const getWrappedCall = (node: TSESTree.ArrowFunctionExpression) => pipe(
   ))
 )
 
-export const isCall = <T extends TSESTree.Node>(utils: ContextUtils, module: Module, name: string) => (node: T) => pipe(
-  node,
-  option.fromPredicate(isArrowFunctionExpression),
-  option.chain(getWrappedCall),
-  option.altW(constant(option.some(node))),
-  option.filter(isCallee),
-  option.exists(isCallTo(utils, module, name))
-)
-
-const isCallTo = ({ typeOfNode }: ContextUtils, module: Module, name: string) => flow(
-  calleeIdentifier,
-  option.filter(hasName(name)),
-  option.chain(typeOfNode),
-  option.exists(isFromModule(module))
-)
-
-export const isLazyValue = (utils: ContextUtils, module: Module, name: string) => flow(
-  findMemberExpression(utils),
-  option.exists(isValue(utils, module, name))
-)
-
-const isValue = ({ typeOfNode }: ContextUtils, module: Module, name: string) => (node: TSESTree.MemberExpression) => pipe(
-  node,
-  option.of,
-  option.filter(hasPropertyIdentifierWithName(name)),
-  option.chain(typeOfNode),
-  option.exists(isFromModule(module))
-)
-
 const findMemberExpressionFromArrowFunctionExpression = (node: TSESTree.ArrowFunctionExpression) => pipe(
   node.body,
   option.of,
   option.filter(isMemberExpression)
 )
-
-const isConstantCall = ({ typeOfNode }: ContextUtils) => (node: TSESTree.CallExpression) => pipe(
-  node,
-  calleeIdentifier,
-  option.filter(hasName("constant")),
-  option.chain(typeOfNode),
-  option.exists(isFromModule("function"))
-)
-
-const findMemberExpressionFromCallExpression = (utils: ContextUtils) => (node: TSESTree.CallExpression) => pipe(
-  node,
-  option.of,
-  option.filter(isConstantCall(utils)),
-  option.chain(getFirstArgument),
-  option.filter(isMemberExpression)
-)
-
-const findMemberExpression = (utils: ContextUtils) => (node: TSESTree.Expression) => {
-  switch (node.type) {
-    case AST_NODE_TYPES.ArrowFunctionExpression:
-      return findMemberExpressionFromArrowFunctionExpression(node)
-    case AST_NODE_TYPES.CallExpression:
-      return findMemberExpressionFromCallExpression(utils)(node)
-    default:
-      return option.none
-  }
-}
 
 const hasArguments = (args: ReadonlyArray<(node: TSESTree.Expression) => boolean>) => flow(
   ensureArguments(args),
@@ -361,15 +305,6 @@ export const ensureArguments = (args: ReadonlyArray<(node: TSESTree.Expression) 
     )
   )
 )
-
-export const findNamespace = (utils: ContextUtils) => flow(
-  findMemberExpression(utils),
-  option.map((node) => node.object),
-  option.filter(isIdentifier),
-  option.map((identifier) => identifier.name)
-)
-
-export type ContextUtils = ReturnType<typeof contextUtils>
 
 export const contextUtils = <
   TMessageIds extends string,
@@ -641,6 +576,69 @@ export const contextUtils = <
     );
   }
 
+  const isCall = <T extends TSESTree.Node>(module: Module, name: string) => (node: T) => pipe(
+    node,
+    option.fromPredicate(isArrowFunctionExpression),
+    option.chain(getWrappedCall),
+    option.altW(constant(option.some(node))),
+    option.filter(isCallee),
+    option.exists(isCallTo(module, name))
+  )
+
+  const isCallTo = (module: Module, name: string) => flow(
+    calleeIdentifier,
+    option.filter(hasName(name)),
+    option.chain(typeOfNode),
+    option.exists(isFromModule(module))
+  )
+
+  const isLazyValue = (module: Module, name: string) => flow(
+    findMemberExpression,
+    option.exists(isValue(module, name))
+  )
+
+  const isValue = (module: Module, name: string) => (node: TSESTree.MemberExpression) => pipe(
+    node,
+    option.of,
+    option.filter(hasPropertyIdentifierWithName(name)),
+    option.chain(typeOfNode),
+    option.exists(isFromModule(module))
+  )
+
+  const isConstantCall = (node: TSESTree.CallExpression) => pipe(
+    node,
+    calleeIdentifier,
+    option.filter(hasName("constant")),
+    option.chain(typeOfNode),
+    option.exists(isFromModule("function"))
+  )
+
+  const findMemberExpressionFromCallExpression = (node: TSESTree.CallExpression) => pipe(
+    node,
+    option.of,
+    option.filter(isConstantCall),
+    option.chain(getFirstArgument),
+    option.filter(isMemberExpression)
+  )
+
+  const findMemberExpression = (node: TSESTree.Expression) => {
+    switch (node.type) {
+      case AST_NODE_TYPES.ArrowFunctionExpression:
+        return findMemberExpressionFromArrowFunctionExpression(node)
+      case AST_NODE_TYPES.CallExpression:
+        return findMemberExpressionFromCallExpression(node)
+      default:
+        return option.none
+    }
+  }
+
+  const findNamespace = flow(
+    findMemberExpression,
+    option.map((node) => node.object),
+    option.filter(isIdentifier),
+    option.map((identifier) => identifier.name)
+  )
+
   return {
     addNamedImportIfNeeded,
     removeImportDeclaration,
@@ -651,5 +649,8 @@ export const contextUtils = <
     typeOfNode,
     isFromFpTs,
     parserServices,
+    isCall,
+    isLazyValue,
+    findNamespace,
   };
 };
