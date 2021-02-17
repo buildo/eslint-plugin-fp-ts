@@ -34,9 +34,7 @@ declare module "typescript" {
 
 const modules = ["Either", "Option", "function"] as const
 
-export type Module = typeof modules[number]
-
-const is = <T>(original: T) => (value: unknown): value is T => original === value
+type Module = typeof modules[number]
 
 const isModule = (name: string): name is Module => modules.includes(name as Module)
 
@@ -47,7 +45,7 @@ export const createRule = ESLintUtils.RuleCreator(
     `https://github.com/buildo/eslint-plugin-fp-ts/blob/v${version}/docs/rules/${name}.md`
 );
 
-export type Callee =
+type Callee =
   | TSESTree.CallExpression
   | TSESTree.MemberExpression
   | TSESTree.Identifier
@@ -230,22 +228,17 @@ const getModule = flow(
   option.chain(getFpTsModule)
 )
 
-export const isFromModule = (module: Module) => flow(
+const isFromModule = (expected: Module) => flow(
   getModule,
-  option.exists(is(module))
+  option.exists(module => module === expected)
 )
-
-const hasName = (name: string) => (identifier: TSESTree.Identifier) => identifier.name === name
-
-const hasLength = (length: number) => <T>(array: ReadonlyArray<T>) => array.length === length
 
 const getArguments = (call: TSESTree.CallExpression) => pipe(
   call.arguments,
   readonlyNonEmptyArray.fromArray
 )
 
-const getFirstArgument = (call: TSESTree.CallExpression) => pipe(
-  call,
+const getFirstArgument = flow(
   getArguments,
   option.map(readonlyNonEmptyArray.head)
 )
@@ -255,50 +248,35 @@ const getParams = (call: TSESTree.FunctionLike) => pipe(
   readonlyNonEmptyArray.fromArray
 )
 
-const getFirstParam = (call: TSESTree.FunctionLike) => pipe(
-  call,
+const getFirstParam = flow(
   getParams,
   option.map(readonlyNonEmptyArray.head)
 )
 
-const isIdentifierWithName = (name: string) => (node: TSESTree.Node) => pipe(
-  node,
-  option.of,
-  option.filter(isIdentifier),
-  option.exists(hasName(name))
-)
-
-const hasPropertyIdentifierWithName = (name: string) => (node: TSESTree.MemberExpression) => pipe(
-  node.property,
-  isIdentifierWithName(name)
+const isIdentifierWithName = (expected: string) => flow(
+  option.fromPredicate(isIdentifier),
+  option.exists(({ name }) => name === expected)
 )
 
 const getWrappedCall = (node: TSESTree.ArrowFunctionExpression) => pipe(
   node.body,
-  option.of,
-  option.filter(isCallExpression),
+  option.fromPredicate(isCallExpression),
   option.filter(flow(
     option.of,
     option.bindTo("call"),
     option.bind("param", () => pipe(node, getFirstParam, option.filter(isIdentifier))),
-    option.exists(({ call, param }) => pipe(call, hasArguments([isIdentifierWithName(param.name)])))
+    option.exists(({ call, param }) => pipe(call, ensureArguments([isIdentifierWithName(param.name)]), option.isSome))
   ))
 )
 
 const findMemberExpressionFromArrowFunctionExpression = (node: TSESTree.ArrowFunctionExpression) => pipe(
   node.body,
-  option.of,
-  option.filter(isMemberExpression)
-)
-
-const hasArguments = (args: ReadonlyArray<(node: TSESTree.Expression) => boolean>) => flow(
-  ensureArguments(args),
-  option.isSome
+  option.fromPredicate(isMemberExpression)
 )
 
 export const ensureArguments = (args: ReadonlyArray<(node: TSESTree.Expression) => boolean>) => flow(
   getArguments,
-  option.filter(pipe(args.length, hasLength)),
+  option.filter((array) => array.length === args.length),
   option.chain(
     readonlyNonEmptyArray.traverseWithIndex(option.option)(
       (i, value) => pipe(args, readonlyArray.lookup(i), option.filter(test => test(value)), option.map(constant(value)))
@@ -585,9 +563,9 @@ export const contextUtils = <
     option.exists(isCallTo(module, name))
   )
 
-  const isCallTo = (module: Module, name: string) => flow(
+  const isCallTo = (module: Module, expected: string) => flow(
     calleeIdentifier,
-    option.filter(hasName(name)),
+    option.filter(({name}) => name === expected),
     option.chain(typeOfNode),
     option.exists(isFromModule(module))
   )
@@ -597,26 +575,21 @@ export const contextUtils = <
     option.exists(isValue(module, name))
   )
 
-  const isValue = (module: Module, name: string) => (node: TSESTree.MemberExpression) => pipe(
-    node,
-    option.of,
-    option.filter(hasPropertyIdentifierWithName(name)),
+  const isValue = (module: Module, name: string) => flow(
+    option.fromPredicate((node: TSESTree.MemberExpression) => pipe(node.property, isIdentifierWithName(name))),
     option.chain(typeOfNode),
     option.exists(isFromModule(module))
   )
 
-  const isConstantCall = (node: TSESTree.CallExpression) => pipe(
-    node,
-    calleeIdentifier,
-    option.filter(hasName("constant")),
+  const isConstantCall = flow(
+    (node: TSESTree.CallExpression) => pipe(node, calleeIdentifier),
+    option.filter(({ name }) => name === "constant"),
     option.chain(typeOfNode),
     option.exists(isFromModule("function"))
   )
 
-  const findMemberExpressionFromCallExpression = (node: TSESTree.CallExpression) => pipe(
-    node,
-    option.of,
-    option.filter(isConstantCall),
+  const findMemberExpressionFromCallExpression = flow(
+    option.fromPredicate(isConstantCall),
     option.chain(getFirstArgument),
     option.filter(isMemberExpression)
   )
