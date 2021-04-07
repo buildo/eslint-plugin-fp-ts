@@ -1,10 +1,11 @@
-# Disallow expressions returning pure data types (like `Task` or `IO`) where `void` or `unknown` is expected or in statement position (fp-ts/no-discarded-pure-expression)
+# Disallow expressions returning pure data types (like `Task`, `IO`, or `Reader`) where `void` or `unknown` is expected or in statement position (fp-ts/no-discarded-pure-expression)
 
-Expressions which return a pure data type, such as `IO`, `Task` and their
-variants, should normally be passed as an argument, returned, or run.
+Expressions which return a pure data type, such as `IO`, `Task`, 'Reader' and
+their variants, should normally be passed as an argument, returned, or run.
 
-Failing to do so causes the program represented by `IO` or `Task` to never be
-run, leading to surprising behavior which is normally difficult to debug.
+Failing to do so causes the program represented by `IO`, `Task`, or `Reader` to
+never be run, leading to surprising behavior which is normally difficult to
+debug.
 
 This rule covers two common scenarios that are common programming errors:
 

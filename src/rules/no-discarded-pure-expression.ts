@@ -1,5 +1,6 @@
 import {
   ParserServices,
+  TSESLint,
   AST_NODE_TYPES,
 } from "@typescript-eslint/experimental-utils";
 import { array, option, readonlyArray } from "fp-ts";
@@ -34,7 +35,8 @@ export default createRule({
   create(context) {
     const { isFromFpTs, typeOfNode, parserServices } = contextUtils(context);
 
-    const pureDataPrefixes = ["Task", "IO"];
+    const pureDataPrefixes = ["Task", "IO", "Reader"];
+    const trivialRunPrefixes = ["Task", "IO"];
 
     function isPureDataType(t: ts.Type): boolean {
       return (
@@ -46,6 +48,15 @@ export default createRule({
           )
         )
       );
+    }
+
+    function canRunWithoutArgs(t: ts.Type): boolean {
+      if (t.isUnion()) {
+        return pipe(t.types, array.every(canRunWithoutArgs));
+      }
+      return trivialRunPrefixes.some(
+        prefix => t.symbol.escapedName.toString().startsWith(prefix)
+      )
     }
 
     function pureDataReturnType(t: ts.Type): Option<ts.Type> {
@@ -92,6 +103,11 @@ export default createRule({
               return isPureDataType(t);
             }),
             option.fold(constVoid, (t) => {
+              const addReturn = (fixer: TSESLint.RuleFixer) =>
+                fixer.insertTextBefore(node.expression, "return ");
+              const runExpression = (fixer: TSESLint.RuleFixer) =>
+                fixer.insertTextAfter(node.expression, "()");
+
               context.report({
                 node: node.expression,
                 messageId: "pureExpressionInStatementPosition",
@@ -100,20 +116,14 @@ export default createRule({
                     ? t.types[0]!.symbol.escapedName
                     : t.symbol.escapedName,
                 },
-                suggest: [
-                  {
-                    messageId: "addReturn",
-                    fix(fixer) {
-                      return fixer.insertTextBefore(node.expression, "return ");
-                    },
-                  },
-                  {
-                    messageId: "runExpression",
-                    fix(fixer) {
-                      return fixer.insertTextAfter(node.expression, "()");
-                    },
-                  },
-                ],
+                suggest: canRunWithoutArgs(t)
+                ? [
+                    { messageId: "addReturn", fix: addReturn, },
+                    { messageId: "runExpression", fix: runExpression },
+                  ]
+                : [
+                    { messageId: "addReturn", fix: addReturn },
+                  ],
               });
             })
           );
