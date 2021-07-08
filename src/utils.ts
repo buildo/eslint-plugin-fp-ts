@@ -459,6 +459,21 @@ export const contextUtils = <
     );
   }
 
+  function getQuote(): Quote {
+    return pipe(
+      context.getAncestors(),
+      array.findFirstMap((node) => {
+        return node.type === "Literal"
+          ? option.some(inferQuote(node))
+          : option.none;
+      }),
+      option.fold(
+        () => '"',
+        (quote) => quote
+      )
+    );
+  }
+
   return {
     addNamedImportIfNeeded,
     removeImportDeclaration,
@@ -469,5 +484,6 @@ export const contextUtils = <
     typeOfNode,
     isFromFpTs,
     parserServices,
+    getQuote,
   };
 };
