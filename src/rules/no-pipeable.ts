@@ -1,5 +1,5 @@
 import { ASTUtils, TSESTree } from "@typescript-eslint/experimental-utils";
-import { createRule, inferQuote } from "../utils";
+import { contextUtils, createRule, inferQuote } from "../utils";
 
 export default createRule({
   name: "no-pipeable",
@@ -21,6 +21,7 @@ export default createRule({
   },
   defaultOptions: [],
   create(context) {
+    const { addNamedImportIfNeeded } = contextUtils(context);
     return {
       ImportDeclaration(node) {
         const sourceValue = ASTUtils.getStringIfConstant(node.source);
@@ -38,10 +39,18 @@ export default createRule({
               messageId: "importPipeFromFunction",
               fix(fixer) {
                 const quote = inferQuote(node.source);
-                return fixer.replaceText(
-                  node.source,
-                  `${quote}fp-ts/function${quote}`
-                );
+                if (node.parent === undefined) {
+                  return [];
+                }
+                return [
+                  fixer.removeRange(node.parent.range),
+                  ...addNamedImportIfNeeded(
+                    "pipe",
+                    "fp-ts/function",
+                    quote,
+                    fixer
+                  ),
+                ];
               },
             });
           } else {
