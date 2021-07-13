@@ -21,7 +21,8 @@ ruleTester.run("no-pipeable", rule, {
           messageId: "importPipeFromFunction",
         },
       ],
-      output: 'import { pipe } from "fp-ts/function"',
+      output: `import { pipe } from "fp-ts/function"
+`,
     },
     {
       code: 'import { pipe } from "fp-ts/pipeable"',
@@ -30,7 +31,8 @@ ruleTester.run("no-pipeable", rule, {
           messageId: "importPipeFromFunction",
         },
       ],
-      output: 'import { pipe } from "fp-ts/function"',
+      output: `import { pipe } from "fp-ts/function"
+`,
     },
     {
       code: "import { pipe } from 'fp-ts/pipeable'",
@@ -39,7 +41,8 @@ ruleTester.run("no-pipeable", rule, {
           messageId: "importPipeFromFunction",
         },
       ],
-      output: "import { pipe } from 'fp-ts/function'",
+      output: `import { pipe } from 'fp-ts/function'
+`,
     },
     {
       code: 'import { pipeable } from "fp-ts/pipeable"',
