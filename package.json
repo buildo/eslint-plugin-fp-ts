@@ -36,7 +36,7 @@
     "@types/estraverse": "^5.1.0",
     "@types/node": "^14.14.16",
     "@types/requireindex": "^1.2.0",
-    "@typescript-eslint/parser": "^4.11.1",
+    "@typescript-eslint/parser": "^5.0.0",
     "common-tags": "^1.8.0",
     "eslint": "^7.17.0",
     "eslint-plugin-fp-ts": "^0.1.8",
