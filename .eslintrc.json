@@ -1,10 +1,13 @@
 {
   "parser": "@typescript-eslint/parser",
-  "plugins": ["fp-ts"],
+  "plugins": ["./lib"],
   "extends": "plugin:fp-ts/all",
   "rules": {
-    "fp-ts/no-module-imports": ["error", {
-      "allowTypes": true
-    }]
+    "fp-ts/no-module-imports": [
+      "error",
+      {
+        "allowTypes": true
+      }
+    ]
   }
 }
