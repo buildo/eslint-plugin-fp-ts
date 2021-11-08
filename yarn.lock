@@ -1433,6 +1433,10 @@ escodegen@^1.14.1:
   optionalDependencies:
     source-map "~0.6.1"
 
+"eslint-plugin-fp-ts@link:./lib":
+  version "0.0.0"
+  uid ""
+
 eslint-scope@^5.1.1:
   version "5.1.1"
   resolved "https://registry.yarnpkg.com/eslint-scope/-/eslint-scope-5.1.1.tgz#e786e59a66cb92b3f6c1fb0d508aab174848f48c"

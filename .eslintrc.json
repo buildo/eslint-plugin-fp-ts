@@ -1,6 +1,6 @@
 {
   "parser": "@typescript-eslint/parser",
-  "plugins": ["./lib"],
+  "plugins": ["fp-ts"],
   "extends": "plugin:fp-ts/all",
   "rules": {
     "fp-ts/no-module-imports": [
