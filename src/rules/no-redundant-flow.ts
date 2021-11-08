@@ -5,9 +5,9 @@ export default createRule({
   meta: {
     type: "suggestion",
     fixable: "code",
+    hasSuggestions: true,
     schema: [],
     docs: {
-      category: "Best Practices",
       description: "Remove redundant uses of flow",
       recommended: "warn",
     },
