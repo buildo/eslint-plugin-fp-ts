@@ -362,6 +362,18 @@ export const contextUtils = <
     );
   }
 
+  function isPipeExpression(node: TSESTree.CallExpression): boolean {
+    return pipe(
+      node,
+      calleeIdentifier,
+      option.exists(
+        (callee) =>
+          callee.name === "pipe" &&
+          isIdentifierImportedFrom(callee, /fp-ts\//, context)
+      )
+    );
+  }
+
   function isPipeOrFlowExpression(node: TSESTree.CallExpression): boolean {
     return pipe(
       node,
@@ -464,6 +476,7 @@ export const contextUtils = <
   return {
     addNamedImportIfNeeded,
     removeImportDeclaration,
+    isPipeExpression,
     isFlowExpression,
     isPipeOrFlowExpression,
     isIdentifierImportedFrom,
@@ -488,7 +501,7 @@ const getArgumentExpression = (
 
 const checkIsArgumentExpression = O.getRefinement(getArgumentExpression);
 
-type CallExpressionWithExpressionArgs = {
+export type CallExpressionWithExpressionArgs = {
   node: TSESTree.CallExpression;
   args: NonEmptyArray.NonEmptyArray<TSESTree.Expression>;
 };
