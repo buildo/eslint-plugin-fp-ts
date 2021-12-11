@@ -58,8 +58,8 @@ export default createRule({
       CallExpression(node) {
         pipe(
           node,
-          O.fromPredicate((node) => node.arguments.length === 1),
-          O.chain(getFlowCallWithExpressionArguments),
+          getFlowCallWithExpressionArguments,
+          O.filter((flowCall) => flowCall.node.arguments.length === 1),
           O.map((redundantFlowCall) => {
             context.report({
               node: redundantFlowCall.node,
