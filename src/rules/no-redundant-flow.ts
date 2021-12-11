@@ -15,6 +15,40 @@ const getArgumentExpression = (
 
 const checkIsArgumentExpression = O.getRefinement(getArgumentExpression);
 
+type CallExpressionWithExpressionArgs = {
+  node: TSESTree.CallExpression;
+  args: NonEmptyArray.NonEmptyArray<TSESTree.Expression>;
+};
+
+const getCallExpressionWithExpressionArgs = (
+  node: TSESTree.CallExpression
+): O.Option<CallExpressionWithExpressionArgs> =>
+  node.arguments.every(checkIsArgumentExpression)
+    ? pipe(
+        node.arguments,
+        NonEmptyArray.fromArray,
+        O.map(
+          (args): CallExpressionWithExpressionArgs => ({
+            node,
+            args,
+          })
+        )
+      )
+    : O.none;
+
+const createSequenceExpressionFromCallExpressionWithExpressionArgs = (
+  call: CallExpressionWithExpressionArgs
+): TSESTree.SequenceExpression => {
+  const firstArg = pipe(call.args, NonEmptyArray.head);
+  const lastArg = pipe(call.args, NonEmptyArray.last);
+  return {
+    loc: call.node.loc,
+    range: [firstArg.range[0], lastArg.range[1]],
+    type: AST_NODE_TYPES.SequenceExpression,
+    expressions: call.args,
+  };
+};
+
 export default createRule({
   name: "no-redundant-flow",
   meta: {
@@ -34,40 +68,6 @@ export default createRule({
   defaultOptions: [],
   create(context) {
     const { isFlowExpression } = contextUtils(context);
-
-    type CallExpressionWithExpressionArgs = {
-      node: TSESTree.CallExpression;
-      args: NonEmptyArray.NonEmptyArray<TSESTree.Expression>;
-    };
-
-    const getCallExpressionWithExpressionArgs = (
-      node: TSESTree.CallExpression
-    ): O.Option<CallExpressionWithExpressionArgs> =>
-      node.arguments.every(checkIsArgumentExpression)
-        ? pipe(
-            node.arguments,
-            NonEmptyArray.fromArray,
-            O.map(
-              (args): CallExpressionWithExpressionArgs => ({
-                node,
-                args,
-              })
-            )
-          )
-        : O.none;
-
-    const createSequenceExpressionFromCallExpressionWithExpressionArgs = (
-      call: CallExpressionWithExpressionArgs
-    ): TSESTree.SequenceExpression => {
-      const firstArg = pipe(call.args, NonEmptyArray.head);
-      const lastArg = pipe(call.args, NonEmptyArray.last);
-      return {
-        loc: call.node.loc,
-        range: [firstArg.range[0], lastArg.range[1]],
-        type: AST_NODE_TYPES.SequenceExpression,
-        expressions: call.args,
-      };
-    };
 
     return {
       CallExpression(node) {
