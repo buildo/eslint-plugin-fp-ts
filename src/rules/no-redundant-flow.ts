@@ -35,24 +35,24 @@ export default createRule({
   create(context) {
     const { isFlowExpression } = contextUtils(context);
 
-    type CallWithExpressionArgs = {
+    type CallExpressionWithExpressionArgs = {
       node: TSESTree.CallExpression;
       args: NonEmptyArray.NonEmptyArray<TSESTree.Expression>;
     };
 
-    const getCallWithExpressionArguments = (
+    const getCallExpressionWithExpressionArgs = (
       node: TSESTree.CallExpression
-    ): O.Option<CallWithExpressionArgs> =>
+    ): O.Option<CallExpressionWithExpressionArgs> =>
       node.arguments.every(checkIsArgumentExpression)
         ? pipe(
             node.arguments,
             NonEmptyArray.fromArray,
-            O.map((args): CallWithExpressionArgs => ({ node, args }))
+            O.map((args): CallExpressionWithExpressionArgs => ({ node, args }))
           )
         : O.none;
 
     const createSequenceExpressionFromCall = (
-      call: CallWithExpressionArgs
+      call: CallExpressionWithExpressionArgs
     ): TSESTree.SequenceExpression => {
       const firstArg = pipe(call.args, NonEmptyArray.head);
       const lastArg = pipe(call.args, NonEmptyArray.last);
@@ -72,7 +72,7 @@ export default createRule({
           /**
            * We ignore flow calls which contain a spread argument because these are never invalid.
            */
-          O.chain(getCallWithExpressionArguments),
+          O.chain(getCallExpressionWithExpressionArgs),
           O.filter((flowCall) => flowCall.node.arguments.length === 1),
           O.map((redundantFlowCall) => {
             context.report({
