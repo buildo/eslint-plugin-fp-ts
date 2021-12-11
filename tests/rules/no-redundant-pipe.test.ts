@@ -28,7 +28,7 @@ pipe(value);
 `,
       errors: [
         {
-          messageId: "redundantPipe",
+          messageId: "redundantPipeWithSingleArg",
           suggestions: [
             {
               messageId: "removePipe",
@@ -48,7 +48,7 @@ pipe(pipe(pipe(value, fn1), fn2), fn3);
 `,
       errors: [
         {
-          messageId: "redundantPipe",
+          messageId: "redundantPipeWithSingleArgInsidePipe",
           suggestions: [
             {
               messageId: "removePipe",
@@ -60,7 +60,7 @@ pipe(pipe(value, fn1), fn2, fn3);
           ],
         },
         {
-          messageId: "redundantPipe",
+          messageId: "redundantPipeWithSingleArgInsidePipe",
           suggestions: [
             {
               messageId: "removePipe",
@@ -80,7 +80,7 @@ pipe(pipe(value, fn1), fn2, fn3);
 `,
       errors: [
         {
-          messageId: "redundantPipe",
+          messageId: "redundantPipeWithSingleArgInsidePipe",
           suggestions: [
             {
               messageId: "removePipe",
@@ -103,7 +103,7 @@ pipe(
 );`,
       errors: [
         {
-          messageId: "redundantPipe",
+          messageId: "redundantPipeWithSingleArgInsidePipe",
           suggestions: [
             {
               messageId: "removePipe",
@@ -128,7 +128,7 @@ pipe(
 `,
       errors: [
         {
-          messageId: "redundantPipe",
+          messageId: "redundantPipeWithSingleArg",
           suggestions: [
             {
               messageId: "removePipe",
@@ -151,7 +151,7 @@ pipe(
 `,
       errors: [
         {
-          messageId: "redundantPipe",
+          messageId: "redundantPipeWithSingleArg",
           suggestions: [
             {
               messageId: "removePipe",

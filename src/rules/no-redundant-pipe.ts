@@ -11,6 +11,13 @@ import {
   CallExpressionWithExpressionArgs,
 } from "../utils";
 
+const errorMessages = {
+  redundantPipeWithSingleArg:
+    "pipe can be removed because it takes only one argument",
+  redundantPipeWithSingleArgInsidePipe:
+    "pipe can be removed because it is used as the first argument inside another pipe",
+};
+
 export default createRule({
   name: "no-redundant-pipe",
   meta: {
@@ -23,8 +30,7 @@ export default createRule({
       recommended: "warn",
     },
     messages: {
-      redundantPipe:
-        "pipe can be removed because it takes only one argument or it is used as the first argument inside another pipe",
+      ...errorMessages,
       removePipe: "remove pipe",
     },
   },
@@ -40,15 +46,32 @@ export default createRule({
       O.chain(getCallExpressionWithExpressionArgs)
     );
 
+    type RedundantPipeCallAndMessage = {
+      redundantPipeCall: CallExpressionWithExpressionArgs;
+      errorMessageId: keyof typeof errorMessages;
+    };
+
     const getRedundantPipeCall = (
       pipeCall: CallExpressionWithExpressionArgs
-    ): O.Option<CallExpressionWithExpressionArgs> => {
+    ): O.Option<RedundantPipeCallAndMessage> => {
       const firstArg = pipe(pipeCall.args, NonEmptyArray.head);
 
       if (pipeCall.args.length === 1) {
-        return O.some(pipeCall);
+        const result: RedundantPipeCallAndMessage = {
+          redundantPipeCall: pipeCall,
+          errorMessageId: "redundantPipeWithSingleArg",
+        };
+        return O.some(result);
       } else if (firstArg.type === AST_NODE_TYPES.CallExpression) {
-        return getPipeCallExpressionWithExpressionArgs(firstArg);
+        return pipe(
+          getPipeCallExpressionWithExpressionArgs(firstArg),
+          O.map(
+            (redundantPipeCall): RedundantPipeCallAndMessage => ({
+              redundantPipeCall,
+              errorMessageId: "redundantPipeWithSingleArgInsidePipe",
+            })
+          )
+        );
       } else {
         return O.none;
       }
@@ -60,10 +83,10 @@ export default createRule({
           node,
           getPipeCallExpressionWithExpressionArgs,
           O.chain(getRedundantPipeCall),
-          O.map((redundantPipeCall) => {
+          O.map(({ redundantPipeCall, errorMessageId }) => {
             context.report({
               node: redundantPipeCall.node,
-              messageId: "redundantPipe",
+              messageId: errorMessageId,
               suggest: [
                 {
                   messageId: "removePipe",
