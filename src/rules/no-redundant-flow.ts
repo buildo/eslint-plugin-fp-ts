@@ -1,4 +1,17 @@
+import {
+  AST_NODE_TYPES,
+  TSESTree,
+} from "@typescript-eslint/experimental-utils";
+import * as O from "fp-ts/Option";
 import { contextUtils, createRule } from "../utils";
+
+const getArgumentExpression = (
+  x: TSESTree.CallExpressionArgument
+): O.Option<TSESTree.Expression> =>
+  // TODO: isExpression?
+  x.type !== AST_NODE_TYPES.SpreadElement ? O.some(x) : O.none;
+
+const checkIsArgumentExpression = O.getRefinement(getArgumentExpression);
 
 export default createRule({
   name: "no-redundant-flow",
@@ -20,9 +33,20 @@ export default createRule({
   create(context) {
     const { isFlowExpression } = contextUtils(context);
 
+    /**
+     * We ignore flow calls which contain a spread argument because these are never invalid.
+     */
+    const isFlowCallWithExpressionArguments = (
+      node: TSESTree.CallExpression
+    ): boolean =>
+      isFlowExpression(node) && node.arguments.every(checkIsArgumentExpression);
+
     return {
       CallExpression(node) {
-        if (node.arguments.length === 1 && isFlowExpression(node)) {
+        if (
+          node.arguments.length === 1 &&
+          isFlowCallWithExpressionArguments(node)
+        ) {
           context.report({
             node,
             messageId: "redundantFlow",
