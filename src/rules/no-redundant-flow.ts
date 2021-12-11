@@ -2,6 +2,8 @@ import {
   AST_NODE_TYPES,
   TSESTree,
 } from "@typescript-eslint/experimental-utils";
+import { pipe } from "fp-ts/function";
+import * as NonEmptyArray from "fp-ts/NonEmptyArray";
 import * as O from "fp-ts/Option";
 import { contextUtils, createRule } from "../utils";
 
@@ -33,39 +35,52 @@ export default createRule({
   create(context) {
     const { isFlowExpression } = contextUtils(context);
 
+    type FlowCallWithExpressionArgs = {
+      node: TSESTree.CallExpression;
+      args: NonEmptyArray.NonEmptyArray<TSESTree.Expression>;
+    };
+
     /**
      * We ignore flow calls which contain a spread argument because these are never invalid.
      */
-    const isFlowCallWithExpressionArguments = (
+    const getFlowCallWithExpressionArguments = (
       node: TSESTree.CallExpression
-    ): boolean =>
-      isFlowExpression(node) && node.arguments.every(checkIsArgumentExpression);
+    ): O.Option<FlowCallWithExpressionArgs> =>
+      isFlowExpression(node) && node.arguments.every(checkIsArgumentExpression)
+        ? pipe(
+            node.arguments,
+            NonEmptyArray.fromArray,
+            O.map((args): FlowCallWithExpressionArgs => ({ node, args }))
+          )
+        : O.none;
 
     return {
       CallExpression(node) {
-        if (
-          node.arguments.length === 1 &&
-          isFlowCallWithExpressionArguments(node)
-        ) {
-          context.report({
-            node,
-            messageId: "redundantFlow",
-            suggest: [
-              {
-                messageId: "removeFlow",
-                fix(fixer) {
-                  return [
-                    fixer.removeRange([
-                      node.callee.range[0],
-                      node.callee.range[1] + 1,
-                    ]),
-                    fixer.removeRange([node.range[1] - 1, node.range[1]]),
-                  ];
+        pipe(
+          node,
+          O.fromPredicate((node) => node.arguments.length === 1),
+          O.chain(getFlowCallWithExpressionArguments),
+          O.map((redundantFlowCall) => {
+            context.report({
+              node: redundantFlowCall.node,
+              messageId: "redundantFlow",
+              suggest: [
+                {
+                  messageId: "removeFlow",
+                  fix(fixer) {
+                    return [
+                      fixer.removeRange([
+                        node.callee.range[0],
+                        node.callee.range[1] + 1,
+                      ]),
+                      fixer.removeRange([node.range[1] - 1, node.range[1]]),
+                    ];
+                  },
                 },
-              },
-            ],
-          });
-        }
+              ],
+            });
+          })
+        );
       },
     };
   },
