@@ -19,6 +19,9 @@ ruleTester.run("no-redundant-flow", rule, {
       bar
     )
     `,
+    `import { flow } from "fp-ts/function"
+    flow(...fns)
+    `,
   ],
   invalid: [
     {
