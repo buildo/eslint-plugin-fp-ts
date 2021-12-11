@@ -47,7 +47,12 @@ export default createRule({
         ? pipe(
             node.arguments,
             NonEmptyArray.fromArray,
-            O.map((args): CallExpressionWithExpressionArgs => ({ node, args }))
+            O.map(
+              (args): CallExpressionWithExpressionArgs => ({
+                node,
+                args,
+              })
+            )
           )
         : O.none;
 
