@@ -68,5 +68,29 @@ const a = ${""}
         },
       ],
     },
+    {
+      code: `
+import { flow } from "fp-ts/function"
+const a = flow(
+  foo,
+);
+`,
+      errors: [
+        {
+          messageId: "redundantFlow",
+          suggestions: [
+            {
+              messageId: "removeFlow",
+              output: `
+import { flow } from "fp-ts/function"
+const a = 
+  foo
+;
+`,
+            },
+          ],
+        },
+      ],
+    }
   ],
 });
