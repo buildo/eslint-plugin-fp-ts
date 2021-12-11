@@ -51,7 +51,7 @@ export default createRule({
           )
         : O.none;
 
-    const createSequenceExpressionFromCall = (
+    const createSequenceExpressionFromCallExpressionWithExpressionArgs = (
       call: CallExpressionWithExpressionArgs
     ): TSESTree.SequenceExpression => {
       const firstArg = pipe(call.args, NonEmptyArray.head);
@@ -83,7 +83,9 @@ export default createRule({
                   messageId: "removeFlow",
                   fix(fixer) {
                     const sequenceExpression =
-                      createSequenceExpressionFromCall(redundantFlowCall);
+                      createSequenceExpressionFromCallExpressionWithExpressionArgs(
+                        redundantFlowCall
+                      );
                     return [
                       fixer.replaceText(
                         redundantFlowCall.node,
