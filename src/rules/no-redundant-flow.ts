@@ -5,7 +5,7 @@ import {
 import { pipe } from "fp-ts/function";
 import * as NonEmptyArray from "fp-ts/NonEmptyArray";
 import * as O from "fp-ts/Option";
-import { contextUtils, createRule } from "../utils";
+import { contextUtils, createRule, prettyPrint } from "../utils";
 
 const getArgumentExpression = (
   x: TSESTree.CallExpressionArgument
@@ -54,6 +54,19 @@ export default createRule({
           )
         : O.none;
 
+    const createSequenceExpressionFromFlowCall = (
+      flowCall: FlowCallWithExpressionArgs
+    ): TSESTree.SequenceExpression => {
+      const firstArg = pipe(flowCall.args, NonEmptyArray.head);
+      const lastArg = pipe(flowCall.args, NonEmptyArray.last);
+      return {
+        loc: flowCall.node.loc,
+        range: [firstArg.range[0], lastArg.range[1]],
+        type: AST_NODE_TYPES.SequenceExpression,
+        expressions: flowCall.args,
+      };
+    };
+
     return {
       CallExpression(node) {
         pipe(
@@ -68,12 +81,13 @@ export default createRule({
                 {
                   messageId: "removeFlow",
                   fix(fixer) {
+                    const sequenceExpression =
+                      createSequenceExpressionFromFlowCall(redundantFlowCall);
                     return [
-                      fixer.removeRange([
-                        node.callee.range[0],
-                        node.callee.range[1] + 1,
-                      ]),
-                      fixer.removeRange([node.range[1] - 1, node.range[1]]),
+                      fixer.replaceText(
+                        redundantFlowCall.node,
+                        prettyPrint(sequenceExpression)
+                      ),
                     ];
                   },
                 },

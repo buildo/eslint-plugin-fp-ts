@@ -59,9 +59,7 @@ const a = flow(
               messageId: "removeFlow",
               output: `
 import { flow } from "fp-ts/function"
-const a = ${""}
-  foo
-
+const a = foo
 `,
             },
           ],
@@ -83,9 +81,7 @@ const a = flow(
               messageId: "removeFlow",
               output: `
 import { flow } from "fp-ts/function"
-const a = 
-  foo
-;
+const a = foo;
 `,
             },
           ],
