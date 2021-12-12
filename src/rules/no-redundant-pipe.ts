@@ -41,7 +41,7 @@ export default createRule({
     const getPipeCallExpressionWithExpressionArgs = flow(
       O.fromPredicate(isPipeExpression),
       /**
-       * We ignore Pipe calls which contain a spread argument because these are never invalid.
+       * We ignore pipe calls which contain a spread argument because these are never invalid.
        */
       O.chain(getCallExpressionWithExpressionArgs)
     );
