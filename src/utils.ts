@@ -18,6 +18,8 @@ import {
 } from "@typescript-eslint/experimental-utils/dist/ts-eslint";
 import ts from "typescript";
 import { Option } from "fp-ts/Option";
+import * as NonEmptyArray from "fp-ts/NonEmptyArray";
+import * as O from "fp-ts/Option";
 
 declare module "typescript" {
   interface TypeChecker {
@@ -469,5 +471,53 @@ export const contextUtils = <
     typeOfNode,
     isFromFpTs,
     parserServices,
+  };
+};
+
+/**
+ * Ideally we could implement this predicate in terms of an existing
+ * `isExpression` predicate but it seems like this doesn't exist anywhere.
+ *
+ * There is an `isExpression` in `tsutils`. However, in the TS AST, spread is
+ * classed as an expression (!).
+ */
+const getArgumentExpression = (
+  x: TSESTree.CallExpressionArgument
+): O.Option<TSESTree.Expression> =>
+  x.type !== AST_NODE_TYPES.SpreadElement ? O.some(x) : O.none;
+
+const checkIsArgumentExpression = O.getRefinement(getArgumentExpression);
+
+type CallExpressionWithExpressionArgs = {
+  node: TSESTree.CallExpression;
+  args: NonEmptyArray.NonEmptyArray<TSESTree.Expression>;
+};
+
+export const getCallExpressionWithExpressionArgs = (
+  node: TSESTree.CallExpression
+): O.Option<CallExpressionWithExpressionArgs> =>
+  node.arguments.every(checkIsArgumentExpression)
+    ? pipe(
+        node.arguments,
+        NonEmptyArray.fromArray,
+        O.map(
+          (args): CallExpressionWithExpressionArgs => ({
+            node,
+            args,
+          })
+        )
+      )
+    : O.none;
+
+export const createSequenceExpressionFromCallExpressionWithExpressionArgs = (
+  call: CallExpressionWithExpressionArgs
+): TSESTree.SequenceExpression => {
+  const firstArg = pipe(call.args, NonEmptyArray.head);
+  const lastArg = pipe(call.args, NonEmptyArray.last);
+  return {
+    loc: call.node.loc,
+    range: [firstArg.range[0], lastArg.range[1]],
+    type: AST_NODE_TYPES.SequenceExpression,
+    expressions: call.args,
   };
 };
