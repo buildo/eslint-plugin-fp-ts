@@ -474,10 +474,16 @@ export const contextUtils = <
   };
 };
 
+/**
+ * Ideally we could implement this predicate in terms of an existing
+ * `isExpression` predicate but it seems like this doesn't exist anywhere.
+ *
+ * There is an `isExpression` in `tsutils`. However, in the TS AST, spread is
+ * classed as an expression (!).
+ */
 const getArgumentExpression = (
   x: TSESTree.CallExpressionArgument
 ): O.Option<TSESTree.Expression> =>
-  // TODO: isExpression?
   x.type !== AST_NODE_TYPES.SpreadElement ? O.some(x) : O.none;
 
 const checkIsArgumentExpression = O.getRefinement(getArgumentExpression);
