@@ -12,9 +12,9 @@ export default createRule({
   name: "no-discarded-pure-expression",
   meta: {
     type: "problem",
+    hasSuggestions: true,
     schema: [],
     docs: {
-      category: "Possible Errors",
       description:
         "Detects pure expressions that do nothing because they're in statement position",
       recommended: "error",

@@ -7,7 +7,6 @@ export default createRule({
     type: "problem",
     fixable: "code",
     docs: {
-      category: "Possible Errors",
       description: "Disallow imports from 'fp-ts/lib'",
       recommended: "error",
     },

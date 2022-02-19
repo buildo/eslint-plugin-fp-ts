@@ -8,7 +8,6 @@ export default createRule({
     fixable: "code",
     schema: [],
     docs: {
-      category: "Possible Errors",
       description: "Disallow imports from the 'pipeable' module",
       recommended: "error",
     },
