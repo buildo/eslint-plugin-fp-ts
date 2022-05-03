@@ -2,12 +2,7 @@
   "name": "eslint-plugin-fp-ts",
   "version": "0.3.0",
   "description": "fp-ts ESLint rules",
-  "keywords": [
-    "eslint",
-    "eslintplugin",
-    "eslint-plugin",
-    "fp-ts"
-  ],
+  "keywords": ["eslint", "eslintplugin", "eslint-plugin", "fp-ts"],
   "author": "buildo",
   "main": "lib/index.js",
   "repository": {
@@ -22,9 +17,7 @@
     "test": "jest",
     "lint": "eslint src/**/*.ts"
   },
-  "files": [
-    "lib"
-  ],
+  "files": ["lib"],
   "dependencies": {
     "@typescript-eslint/experimental-utils": "^5.0.0",
     "estraverse": "^5.2.0",
@@ -45,6 +38,9 @@
     "rimraf": "^3.0.2",
     "ts-jest": "^26.4.4",
     "typescript": "^4.1.3"
+  },
+  "peerDependencies": {
+    "eslint": "^8.0.0"
   },
   "engines": {
     "node": ">=0.10.0"
