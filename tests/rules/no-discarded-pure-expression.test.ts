@@ -46,6 +46,22 @@ ruleTester.run("no-discarded-pure-expression", rule, {
       `,
     },
     {
+      code: stripIndent`
+        import { reader } from "fp-ts"
+        function ok() {
+          return reader.of(42)
+        }
+      `,
+    },
+    {
+      code: stripIndent`
+        import { reader } from "fp-ts"
+        function ok() {
+          reader.of(42)(null)
+        }
+      `,
+    },
+    {
       parserOptions: { ecmaFeatures: { jsx: true } },
       code: stripIndent`
         import { task } from "fp-ts"
@@ -252,6 +268,35 @@ ruleTester.run("no-discarded-pure-expression", rule, {
     },
     {
       code: stripIndent`
+        import { reader } from "fp-ts"
+
+        function woops() {
+          reader.of(42)
+        }
+      `,
+      errors: [
+        {
+          messageId: "pureExpressionInStatementPosition",
+          data: {
+            dataType: "Reader",
+          },
+          suggestions: [
+            {
+              messageId: "addReturn",
+              output: stripIndent`
+                import { reader } from "fp-ts"
+
+                function woops() {
+                  return reader.of(42)
+                }
+              `,
+            },
+          ],
+        },
+      ],
+    },
+    {
+      code: stripIndent`
         import { task, taskEither } from "fp-ts"
 
         function f(n: number) {
@@ -306,6 +351,49 @@ ruleTester.run("no-discarded-pure-expression", rule, {
                 }
               `,
             },
+          ],
+        },
+      ],
+    },
+    {
+      code: stripIndent`
+        import { task, reader } from "fp-ts"
+
+        function f(n: number) {
+          if (n > 1) {
+            return reader.of("foo")
+          }
+          return task.of(42)
+        }
+
+        function woops() {
+          f(2)
+        }
+      `,
+      errors: [
+        {
+          messageId: "pureExpressionInStatementPosition",
+          data: {
+            dataType: "Reader",
+          },
+          suggestions: [
+            {
+              messageId: "addReturn",
+              output: stripIndent`
+                import { task, reader } from "fp-ts"
+
+                function f(n: number) {
+                  if (n > 1) {
+                    return reader.of("foo")
+                  }
+                  return task.of(42)
+                }
+
+                function woops() {
+                  return f(2)
+                }
+              `,
+            }
           ],
         },
       ],
