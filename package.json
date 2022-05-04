@@ -27,6 +27,7 @@
   ],
   "dependencies": {
     "@typescript-eslint/experimental-utils": "^5.0.0",
+    "@typescript-eslint/typescript-estree": "^5.22.0",
     "estraverse": "^5.2.0",
     "fp-ts": "^2.9.3",
     "recast": "^0.20.4"
