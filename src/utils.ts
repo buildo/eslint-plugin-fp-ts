@@ -8,8 +8,8 @@ import {
 } from "@typescript-eslint/experimental-utils";
 import * as recast from "recast";
 import { visitorKeys as tsVisitorKeys } from "@typescript-eslint/typescript-estree";
-import { array, option, apply } from "fp-ts";
-import { pipe } from "fp-ts/function";
+import { array, option, apply, readonlyArray, readonlyNonEmptyArray } from "fp-ts";
+import { constant, flow, pipe } from "fp-ts/function";
 
 import estraverse from "estraverse";
 import {
@@ -34,6 +34,12 @@ declare module "typescript" {
   function toFileNameLowerCase(x: string): string;
 }
 
+const modules = ["Either", "Option", "function"] as const
+
+type Module = typeof modules[number]
+
+const isModule = (name: string): name is Module => modules.includes(name as Module)
+
 const version = require("../package.json").version;
 
 export const createRule = ESLintUtils.RuleCreator(
@@ -41,12 +47,12 @@ export const createRule = ESLintUtils.RuleCreator(
     `https://github.com/buildo/eslint-plugin-fp-ts/blob/v${version}/docs/rules/${name}.md`
 );
 
-export function calleeIdentifier(
-  node:
-    | TSESTree.CallExpression
-    | TSESTree.MemberExpression
-    | TSESTree.Identifier
-): option.Option<TSESTree.Identifier> {
+type Callee =
+  | TSESTree.CallExpression
+  | TSESTree.MemberExpression
+  | TSESTree.Identifier
+
+export function calleeIdentifier(node: Callee): option.Option<TSESTree.Identifier> {
   switch (node.type) {
     case AST_NODE_TYPES.MemberExpression:
       if (node.property.type === AST_NODE_TYPES.Identifier) {
@@ -71,12 +77,17 @@ export function calleeIdentifier(
   }
 }
 
-function isWithinTypes<N extends TSESTree.Node>(
-  n: TSESTree.Node | undefined,
-  types: N["type"][]
-): n is N {
-  return !!n && types.includes(n.type);
-}
+const isWithinTypes = <T extends TSESTree.Node>(types: T["type"][]) => (node: TSESTree.Node): node is T => types.includes(node.type)
+
+const isArrowFunctionExpression = isWithinTypes<TSESTree.ArrowFunctionExpression>([AST_NODE_TYPES.ArrowFunctionExpression])
+
+const isCallExpression = isWithinTypes<TSESTree.CallExpression>([AST_NODE_TYPES.CallExpression])
+
+const isCallee = isWithinTypes<Callee>([AST_NODE_TYPES.CallExpression, AST_NODE_TYPES.MemberExpression, AST_NODE_TYPES.Identifier])
+
+const isIdentifier = isWithinTypes<TSESTree.Identifier>([AST_NODE_TYPES.Identifier])
+
+const isMemberExpression = isWithinTypes<TSESTree.MemberExpression>([AST_NODE_TYPES.MemberExpression])
 
 type CombinatorNode =
   | TSESTree.CallExpression
@@ -106,11 +117,11 @@ export function getAdjacentCombinators<
   const firstCombinatorIndex = pipeOrFlowExpression.arguments.findIndex(
     (a, index) => {
       if (
-        isWithinTypes(a, combinator1.types) &&
+        isWithinTypes(combinator1.types)(a) &&
         index < pipeOrFlowExpression.arguments.length - 1
       ) {
         const b = pipeOrFlowExpression.arguments[index + 1];
-        if (isWithinTypes(b, combinator2.types)) {
+        if (b && isWithinTypes(combinator2.types)(b)) {
           return pipe(
             apply.sequenceS(option.option)({
               idA: calleeIdentifier(a),
@@ -190,6 +201,91 @@ type Quote = "'" | '"';
 export function inferQuote(node: TSESTree.Literal): Quote {
   return node.raw[0] === "'" ? "'" : '"';
 }
+
+const getDeclarationFileName = (declaration: ts.Declaration) => declaration.getSourceFile().fileName
+
+const getDeclarations = flow(
+  (symbol: ts.Symbol) => symbol.getDeclarations(),
+  option.fromNullable,
+  option.chain(readonlyNonEmptyArray.fromArray)
+)
+
+const getFileName = flow(
+  (type: ts.Type) => type.aliasSymbol ?? type.symbol,
+  option.fromNullable,
+  option.chain(getDeclarations),
+  option.map(readonlyNonEmptyArray.head),
+  option.map(getDeclarationFileName)
+)
+
+const getFpTsModule = flow(
+  (fileName: string) => /\/fp-ts\/lib\/(.+?)\.d\.ts$/.exec(fileName),
+  option.fromNullable,
+  option.chain(array.lookup(1)),
+  option.filter(isModule)
+)
+
+const getModule = flow(
+  getFileName,
+  option.chain(getFpTsModule)
+)
+
+const isFromModule = (expected: Module) => flow(
+  getModule,
+  option.exists(module => module === expected)
+)
+
+const getArguments = (call: TSESTree.CallExpression) => pipe(
+  call.arguments,
+  readonlyNonEmptyArray.fromArray
+)
+
+const getFirstArgument = flow(
+  getArguments,
+  option.map(readonlyNonEmptyArray.head)
+)
+
+const getParams = (call: TSESTree.FunctionLike) => pipe(
+  call.params,
+  readonlyNonEmptyArray.fromArray
+)
+
+const getFirstParam = flow(
+  getParams,
+  option.map(readonlyNonEmptyArray.head)
+)
+
+const isIdentifierWithName = (expected: string) => flow(
+  option.fromPredicate(isIdentifier),
+  option.exists(({ name }) => name === expected)
+)
+
+const getWrappedCall = (node: TSESTree.ArrowFunctionExpression) => pipe(
+  node.body,
+  option.fromPredicate(isCallExpression),
+  option.filter(flow(
+    option.of,
+    option.bindTo("call"),
+    option.bind("param", () => pipe(node, getFirstParam, option.filter(isIdentifier))),
+    option.exists(({ call, param }) => pipe(call, ensureArguments([isIdentifierWithName(param.name)]), option.isSome))
+  ))
+)
+
+const findMemberExpressionFromArrowFunctionExpression = (node: TSESTree.ArrowFunctionExpression) => pipe(
+  node.body,
+  option.fromPredicate(isMemberExpression)
+)
+
+export const ensureArguments = (args: ReadonlyArray<(node: TSESTree.Expression) => boolean>) => flow(
+  getArguments,
+  option.filter((array) => array.length === args.length),
+  option.chain(flow(
+    readonlyNonEmptyArray.map(value => value.type === AST_NODE_TYPES.SpreadElement ? value.argument : value),
+    readonlyNonEmptyArray.traverseWithIndex(option.option)(
+      (i, value) => pipe(args, readonlyArray.lookup(i), option.filter(test => test(value)), option.map(constant(value)))
+    ))
+  )
+)
 
 export const contextUtils = <
   TMessageIds extends string,
@@ -461,6 +557,64 @@ export const contextUtils = <
     );
   }
 
+  const isCall = <T extends TSESTree.Node>(module: Module, name: string) => (node: T) => pipe(
+    node,
+    option.fromPredicate(isArrowFunctionExpression),
+    option.chain(getWrappedCall),
+    option.altW(constant(option.some(node))),
+    option.filter(isCallee),
+    option.exists(isCallTo(module, name))
+  )
+
+  const isCallTo = (module: Module, expected: string) => flow(
+    calleeIdentifier,
+    option.filter(({name}) => name === expected),
+    option.chain(typeOfNode),
+    option.exists(isFromModule(module))
+  )
+
+  const isLazyValue = (module: Module, name: string) => flow(
+    findMemberExpression,
+    option.exists(isValue(module, name))
+  )
+
+  const isValue = (module: Module, name: string) => flow(
+    option.fromPredicate((node: TSESTree.MemberExpression) => pipe(node.property, isIdentifierWithName(name))),
+    option.chain(typeOfNode),
+    option.exists(isFromModule(module))
+  )
+
+  const isConstantCall = flow(
+    (node: TSESTree.CallExpression) => pipe(node, calleeIdentifier),
+    option.filter(({ name }) => name === "constant"),
+    option.chain(typeOfNode),
+    option.exists(isFromModule("function"))
+  )
+
+  const findMemberExpressionFromCallExpression = flow(
+    option.fromPredicate(isConstantCall),
+    option.chain(getFirstArgument),
+    option.filter(isMemberExpression)
+  )
+
+  const findMemberExpression = (node: TSESTree.Expression) => {
+    switch (node.type) {
+      case AST_NODE_TYPES.ArrowFunctionExpression:
+        return findMemberExpressionFromArrowFunctionExpression(node)
+      case AST_NODE_TYPES.CallExpression:
+        return findMemberExpressionFromCallExpression(node)
+      default:
+        return option.none
+    }
+  }
+
+  const findNamespace = flow(
+    findMemberExpression,
+    option.map((node) => node.object),
+    option.filter(isIdentifier),
+    option.map((identifier) => identifier.name)
+  )
+
   return {
     addNamedImportIfNeeded,
     removeImportDeclaration,
@@ -471,6 +625,9 @@ export const contextUtils = <
     typeOfNode,
     isFromFpTs,
     parserServices,
+    isCall,
+    isLazyValue,
+    findNamespace,
   };
 };
 
