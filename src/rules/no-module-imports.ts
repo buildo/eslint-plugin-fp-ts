@@ -22,7 +22,6 @@ export default createRule<Options, MessageIds>({
     type: "problem",
     fixable: "code",
     docs: {
-      category: "Best Practices",
       description:
         "Disallow imports from fp-ts modules, such as `fp-ts/Option`",
       recommended: "error",

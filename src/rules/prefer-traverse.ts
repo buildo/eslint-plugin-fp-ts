@@ -17,9 +17,9 @@ export default createRule({
   meta: {
     type: "suggestion",
     fixable: "code",
+    hasSuggestions: true,
     schema: [],
     docs: {
-      category: "Best Practices",
       description: "Replace map + sequence with traverse",
       recommended: "warn",
     },

@@ -1,13 +1,21 @@
-import { contextUtils, createRule } from "../utils";
+import { pipe } from "fp-ts/function";
+import * as O from "fp-ts/Option";
+import {
+  contextUtils,
+  createRule,
+  createSequenceExpressionFromCallExpressionWithExpressionArgs,
+  getCallExpressionWithExpressionArgs,
+  prettyPrint,
+} from "../utils";
 
 export default createRule({
   name: "no-redundant-flow",
   meta: {
     type: "suggestion",
     fixable: "code",
+    hasSuggestions: true,
     schema: [],
     docs: {
-      category: "Best Practices",
       description: "Remove redundant uses of flow",
       recommended: "warn",
     },
@@ -22,26 +30,38 @@ export default createRule({
 
     return {
       CallExpression(node) {
-        if (node.arguments.length === 1 && isFlowExpression(node)) {
-          context.report({
-            node,
-            messageId: "redundantFlow",
-            suggest: [
-              {
-                messageId: "removeFlow",
-                fix(fixer) {
-                  return [
-                    fixer.removeRange([
-                      node.callee.range[0],
-                      node.callee.range[1] + 1,
-                    ]),
-                    fixer.removeRange([node.range[1] - 1, node.range[1]]),
-                  ];
+        pipe(
+          node,
+          O.fromPredicate(isFlowExpression),
+          /**
+           * We ignore flow calls which contain a spread argument because these are never invalid.
+           */
+          O.chain(getCallExpressionWithExpressionArgs),
+          O.filter((flowCall) => flowCall.node.arguments.length === 1),
+          O.map((redundantFlowCall) => {
+            context.report({
+              node: redundantFlowCall.node,
+              messageId: "redundantFlow",
+              suggest: [
+                {
+                  messageId: "removeFlow",
+                  fix(fixer) {
+                    const sequenceExpression =
+                      createSequenceExpressionFromCallExpressionWithExpressionArgs(
+                        redundantFlowCall
+                      );
+                    return [
+                      fixer.replaceText(
+                        redundantFlowCall.node,
+                        prettyPrint(sequenceExpression)
+                      ),
+                    ];
+                  },
                 },
-              },
-            ],
-          });
-        }
+              ],
+            });
+          })
+        );
       },
     };
   },

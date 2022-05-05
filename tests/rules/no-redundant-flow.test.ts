@@ -19,6 +19,9 @@ ruleTester.run("no-redundant-flow", rule, {
       bar
     )
     `,
+    `import { flow } from "fp-ts/function"
+    flow(...fns)
+    `,
   ],
   invalid: [
     {
@@ -56,14 +59,34 @@ const a = flow(
               messageId: "removeFlow",
               output: `
 import { flow } from "fp-ts/function"
-const a = ${""}
-  foo
-
+const a = foo
 `,
             },
           ],
         },
       ],
     },
+    {
+      code: `
+import { flow } from "fp-ts/function"
+const a = flow(
+  foo,
+);
+`,
+      errors: [
+        {
+          messageId: "redundantFlow",
+          suggestions: [
+            {
+              messageId: "removeFlow",
+              output: `
+import { flow } from "fp-ts/function"
+const a = foo;
+`,
+            },
+          ],
+        },
+      ],
+    }
   ],
 });

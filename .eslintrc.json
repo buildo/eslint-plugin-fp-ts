@@ -3,8 +3,11 @@
   "plugins": ["fp-ts"],
   "extends": "plugin:fp-ts/all",
   "rules": {
-    "fp-ts/no-module-imports": ["error", {
-      "allowTypes": true
-    }]
+    "fp-ts/no-module-imports": [
+      "error",
+      {
+        "allowTypes": true
+      }
+    ]
   }
 }

@@ -18,9 +18,9 @@ export default createRule({
   meta: {
     type: "suggestion",
     fixable: "code",
+    hasSuggestions: true,
     schema: [],
     docs: {
-      category: "Best Practices",
       description: "Replace map + mapLeft with bimap",
       recommended: "warn",
     },
