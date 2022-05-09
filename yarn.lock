@@ -576,9 +576,9 @@
   integrity sha512-htRqZr5qn8EzMelhX/Xmx142z218lLyGaeZ3YR8jlze4TATRU9huKKvuBmAJEW4LCC4pnY1N6JAm6p85fMHjhg==
 
 "@types/estraverse@^5.1.0":
-  version "5.1.0"
-  resolved "https://registry.yarnpkg.com/@types/estraverse/-/estraverse-5.1.0.tgz#7a16cf8a8ee7764c05ccef3b2701bbcde6d5d0ae"
-  integrity sha512-vH2ItsZq47KprWHdv8OMjlfpygPHp1P7X4zuJuTghXldyezatpaotNSujld/HNsxh9TUS7+JRB0HEldkv67qaw==
+  version "5.1.1"
+  resolved "https://registry.yarnpkg.com/@types/estraverse/-/estraverse-5.1.1.tgz#1a220a4f78c10a739496a18fa067e2a2429ae881"
+  integrity sha512-AUnklMz90PdmlN4TFqnHC5hP9eRwNQdXgI8aXsSVVMMr2U6Nwo7n4QJxzOiUtVZy/0JFg5oA4PxVh8UBtUELyw==
   dependencies:
     "@types/estree" "*"
 
