@@ -1,11 +1,12 @@
 import rule from "../../src/rules/no-pipeable";
-import { ESLintUtils } from "@typescript-eslint/experimental-utils";
+import { RuleTester } from "@typescript-eslint/rule-tester";
 
-const ruleTester = new ESLintUtils.RuleTester({
-  parser: "@typescript-eslint/parser",
-  parserOptions: {
-    sourceType: "module",
-  },
+const ruleTester = new RuleTester({
+    languageOptions: {
+        parserOptions: {
+            sourceType: "module",
+        },
+    }
 });
 
 ruleTester.run("no-pipeable", rule, {

@@ -1,4 +1,4 @@
-import { AST_NODE_TYPES } from "@typescript-eslint/experimental-utils";
+import { AST_NODE_TYPES } from "@typescript-eslint/utils";
 import { boolean, option } from "fp-ts";
 import { constVoid, pipe } from "fp-ts/function";
 import {
@@ -17,7 +17,6 @@ export default createRule({
     schema: [],
     docs: {
       description: "Replace map + flatten with chain",
-      recommended: "warn",
     },
     messages: {
       mapFlattenIsChain: "map followed by flatten can be replaced by chain",

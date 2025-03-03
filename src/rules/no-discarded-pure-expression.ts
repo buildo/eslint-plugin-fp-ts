@@ -1,7 +1,7 @@
 import {
   ParserServices,
   AST_NODE_TYPES,
-} from "@typescript-eslint/experimental-utils";
+} from "@typescript-eslint/utils";
 import { array, option, readonlyArray } from "fp-ts";
 import { constVoid, pipe } from "fp-ts/function";
 import { Option } from "fp-ts/Option";
@@ -17,7 +17,6 @@ export default createRule({
     docs: {
       description:
         "Detects pure expressions that do nothing because they're in statement position",
-      recommended: "error",
     },
     messages: {
       pureExpressionInStatementPosition:
@@ -142,7 +141,7 @@ export default createRule({
           option.Do,
           option.bind("parserServices", parserServices),
           option.bind("typeChecker", ({ parserServices }) =>
-            option.some(parserServices.program.getTypeChecker())
+            option.fromNullable(parserServices.program?.getTypeChecker())
           ),
           option.bind(
             "parameterWithVoidOrUknownReturnType",
@@ -181,7 +180,7 @@ export default createRule({
               option.bind("argumentType", () => typeOfNode(argumentNode)),
               option.bind("parserServices", parserServices),
               option.bind("typeChecker", ({ parserServices }) =>
-                option.some(parserServices.program.getTypeChecker())
+                option.fromNullable(parserServices.program?.getTypeChecker())
               ),
               option.bind(
                 "parameterReturnType",

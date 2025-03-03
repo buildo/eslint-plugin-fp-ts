@@ -1,4 +1,4 @@
-import { ASTUtils } from "@typescript-eslint/experimental-utils";
+import { ASTUtils } from "@typescript-eslint/utils";
 import { createRule, inferQuote } from "../utils";
 
 export default createRule({
@@ -8,7 +8,6 @@ export default createRule({
     fixable: "code",
     docs: {
       description: "Disallow imports from 'fp-ts/lib'",
-      recommended: "error",
     },
     schema: [],
     messages: {

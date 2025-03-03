@@ -1,7 +1,7 @@
 import {
   ASTUtils,
   AST_NODE_TYPES,
-} from "@typescript-eslint/experimental-utils";
+} from "@typescript-eslint/utils";
 import { array } from "fp-ts";
 import { pipe } from "fp-ts/function";
 import { contextUtils, createRule, inferQuote } from "../utils";
@@ -24,7 +24,6 @@ export default createRule<Options, MessageIds>({
     docs: {
       description:
         "Disallow imports from fp-ts modules, such as `fp-ts/Option`",
-      recommended: "error",
     },
     schema: [
       {
@@ -103,7 +102,7 @@ export default createRule<Options, MessageIds>({
                   const referencesFixes = importSpecifiers.flatMap(
                     (importSpecifier) => {
                       const variable = ASTUtils.findVariable(
-                        context.getScope(),
+                        context.sourceCode.getScope(node),
                         importSpecifier.local.name
                       );
                       if (variable) {

@@ -1,5 +1,5 @@
 import rule from "../../src/rules/no-discarded-pure-expression";
-import { ESLintUtils } from "@typescript-eslint/experimental-utils";
+import { RuleTester } from "@typescript-eslint/rule-tester";
 import path from "path";
 import { stripIndent } from "common-tags";
 
@@ -10,13 +10,14 @@ const fixtureProjectPath = path.join(
   "fp-ts-project"
 );
 
-const ruleTester = new ESLintUtils.RuleTester({
-  parser: "@typescript-eslint/parser",
-  parserOptions: {
-    sourceType: "module",
-    tsconfigRootDir: fixtureProjectPath,
-    project: "./tsconfig.json",
-  },
+const ruleTester = new RuleTester({
+    languageOptions: {
+        parserOptions: {
+            sourceType: "module",
+            tsconfigRootDir: fixtureProjectPath,
+            project: "./tsconfig.json"
+        },
+    }
 });
 
 ruleTester.run("no-discarded-pure-expression", rule, {
@@ -46,7 +47,9 @@ ruleTester.run("no-discarded-pure-expression", rule, {
       `,
     },
     {
-      parserOptions: { ecmaFeatures: { jsx: true } },
+      languageOptions: {
+        parserOptions: { ecmaFeatures: { jsx: true } }
+      },
       code: stripIndent`
         import { task } from "fp-ts"
 
@@ -311,7 +314,9 @@ ruleTester.run("no-discarded-pure-expression", rule, {
       ],
     },
     {
-      parserOptions: { ecmaFeatures: { jsx: true } },
+      languageOptions: {
+        parserOptions: { ecmaFeatures: { jsx: true } }
+      },
       code: stripIndent`
         import { task } from "fp-ts"
 
@@ -343,7 +348,9 @@ ruleTester.run("no-discarded-pure-expression", rule, {
       ],
     },
     {
-      parserOptions: { ecmaFeatures: { jsx: true } },
+      languageOptions: {
+        parserOptions: { ecmaFeatures: { jsx: true } }
+      },
       code: stripIndent`
         import { task } from "fp-ts"
 

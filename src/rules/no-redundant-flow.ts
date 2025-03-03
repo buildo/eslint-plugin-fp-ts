@@ -17,7 +17,6 @@ export default createRule({
     schema: [],
     docs: {
       description: "Remove redundant uses of flow",
-      recommended: "warn",
     },
     messages: {
       redundantFlow: "flow can be removed because it takes only one argument",

@@ -1,7 +1,7 @@
 import {
   AST_NODE_TYPES,
   TSESTree,
-} from "@typescript-eslint/experimental-utils";
+} from "@typescript-eslint/utils";
 import { boolean, option, apply } from "fp-ts";
 import { constVoid, pipe } from "fp-ts/function";
 import {
@@ -22,7 +22,6 @@ export default createRule({
     schema: [],
     docs: {
       description: "Replace map + mapLeft with bimap",
-      recommended: "warn",
     },
     messages: {
       mapMapLeftIsBimap:
