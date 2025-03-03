@@ -1,9 +1,7 @@
 import rule from "../../src/rules/prefer-traverse";
-import { ESLintUtils } from "@typescript-eslint/experimental-utils";
+import { RuleTester } from "@typescript-eslint/rule-tester"
 
-const ruleTester = new ESLintUtils.RuleTester({
-  parser: "@typescript-eslint/parser",
-});
+const ruleTester = new RuleTester();
 
 ruleTester.run("prefer-traverse", rule, {
   valid: [

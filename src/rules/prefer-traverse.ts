@@ -1,7 +1,7 @@
 import {
   AST_NODE_TYPES,
   TSESTree,
-} from "@typescript-eslint/experimental-utils";
+} from "@typescript-eslint/utils";
 import { constVoid, pipe } from "fp-ts/function";
 import { boolean, option } from "fp-ts";
 import {
@@ -21,7 +21,6 @@ export default createRule({
     schema: [],
     docs: {
       description: "Replace map + sequence with traverse",
-      recommended: "warn",
     },
     messages: {
       mapSequenceIsTraverse:

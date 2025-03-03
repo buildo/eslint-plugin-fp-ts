@@ -1,9 +1,7 @@
 import rule from "../../src/rules/prefer-chain";
-import { ESLintUtils } from "@typescript-eslint/experimental-utils";
+import { RuleTester } from "@typescript-eslint/rule-tester";
 
-const ruleTester = new ESLintUtils.RuleTester({
-  parser: "@typescript-eslint/parser",
-});
+const ruleTester = new RuleTester();
 
 ruleTester.run("prefer-chain", rule, {
   valid: [

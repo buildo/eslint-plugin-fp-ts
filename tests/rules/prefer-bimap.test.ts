@@ -1,10 +1,8 @@
 import rule from "../../src/rules/prefer-bimap";
-import { ESLintUtils } from "@typescript-eslint/experimental-utils";
+import { RuleTester } from "@typescript-eslint/rule-tester";
 import { stripIndent } from "common-tags";
 
-const ruleTester = new ESLintUtils.RuleTester({
-  parser: "@typescript-eslint/parser",
-});
+const ruleTester = new RuleTester();
 
 ruleTester.run("prefer-bimap", rule, {
   valid: [

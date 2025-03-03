@@ -1,4 +1,4 @@
-import { ASTUtils, TSESTree } from "@typescript-eslint/experimental-utils";
+import { ASTUtils, TSESTree } from "@typescript-eslint/utils";
 import { createRule, inferQuote } from "../utils";
 
 export default createRule({
@@ -9,7 +9,6 @@ export default createRule({
     schema: [],
     docs: {
       description: "Disallow imports from the 'pipeable' module",
-      recommended: "error",
     },
     messages: {
       importPipeFromFunction:
@@ -28,7 +27,7 @@ export default createRule({
           if (
             node.specifiers.find(
               (importClause) =>
-                (importClause as TSESTree.ImportSpecifier).imported?.name ===
+                ((importClause as TSESTree.ImportSpecifier).imported as TSESTree.Identifier | undefined)?.name ===
                 "pipe"
             )
           ) {

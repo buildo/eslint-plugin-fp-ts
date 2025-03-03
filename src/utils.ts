@@ -5,17 +5,11 @@ import {
   TSESTree,
   ESLintUtils,
   ParserServices,
-} from "@typescript-eslint/experimental-utils";
+} from "@typescript-eslint/utils";
 import * as recast from "recast";
-import { visitorKeys as tsVisitorKeys } from "@typescript-eslint/typescript-estree";
+import { simpleTraverse } from "@typescript-eslint/typescript-estree";
 import { array, option, apply } from "fp-ts";
 import { pipe } from "fp-ts/function";
-
-import estraverse from "estraverse";
-import {
-  RuleFix,
-  RuleFixer,
-} from "@typescript-eslint/experimental-utils/dist/ts-eslint";
 import ts from "typescript";
 import { Option } from "fp-ts/Option";
 import * as NonEmptyArray from "fp-ts/NonEmptyArray";
@@ -201,31 +195,31 @@ export const contextUtils = <
     moduleName: string
   ): option.Option<TSESTree.ImportDeclaration> {
     let importNode: option.Option<TSESTree.ImportDeclaration> = option.none;
-    estraverse.traverse(context.getSourceCode().ast as any, {
-      enter(node) {
-        if (
-          node.type === "ImportDeclaration" &&
-          ASTUtils.getStringIfConstant(node.source as TSESTree.Literal) ===
-            moduleName
-        ) {
-          importNode = option.some(node as TSESTree.ImportDeclaration);
+
+    simpleTraverse(context.getSourceCode().ast as any, {
+        enter: (node) => {
+            if (
+                node.type === "ImportDeclaration" &&
+                ASTUtils.getStringIfConstant(node.source as TSESTree.Literal) === moduleName
+            ) {
+                importNode = option.some(node as TSESTree.ImportDeclaration);
+            }
         }
-      },
-      keys: tsVisitorKeys as any,
-    });
+    })
     return importNode;
   }
 
   function findLastModuleImport(): option.Option<TSESTree.ImportDeclaration> {
     let importNode: option.Option<TSESTree.ImportDeclaration> = option.none;
-    estraverse.traverse(context.getSourceCode().ast as any, {
-      enter(node) {
-        if (node.type === "ImportDeclaration") {
-          importNode = option.some(node as TSESTree.ImportDeclaration);
+    simpleTraverse(context.getSourceCode().ast as any, {
+        enter: (node) => {
+            if (
+                node.type === "ImportDeclaration"
+            ) {
+                importNode = option.some(node as TSESTree.ImportDeclaration);
+            }
         }
-      },
-      keys: tsVisitorKeys as any,
-    });
+    })
     return importNode;
   }
 
@@ -266,7 +260,7 @@ export const contextUtils = <
             array.findFirst(
               (specifier) =>
                 specifier.type === AST_NODE_TYPES.ImportSpecifier &&
-                specifier.imported.name === name
+                (specifier.imported as TSESTree.Identifier | undefined)?.name === name
             ),
             option.fold(
               () =>
@@ -315,8 +309,8 @@ export const contextUtils = <
 
   function removeImportDeclaration(
     node: TSESTree.ImportDeclaration,
-    fixer: RuleFixer
-  ): RuleFix {
+    fixer: TSESLint.RuleFixer
+  ): TSESLint.RuleFix {
     const nextToken = context.getSourceCode().getTokenAfter(node);
 
     if (nextToken && nextToken.loc.start.line > node.loc.start.line) {
@@ -338,10 +332,11 @@ export const contextUtils = <
   >(
     identifier: TSESTree.Identifier,
     targetModuleName: string | RegExp,
-    context: TSESLint.RuleContext<TMessageIds, TOptions>
+    context: TSESLint.RuleContext<TMessageIds, TOptions>,
+    node: TSESTree.Node
   ): boolean {
     const importDef = ASTUtils.findVariable(
-      ASTUtils.getInnermostScope(context.getScope(), identifier),
+      ASTUtils.getInnermostScope(context.sourceCode.getScope(node), identifier),
       identifier.name
     )?.defs.find((d) => d.type === "ImportBinding");
     return !!(
@@ -357,7 +352,7 @@ export const contextUtils = <
       option.exists(
         (callee) =>
           callee.name === "flow" &&
-          isIdentifierImportedFrom(callee, /fp-ts\//, context)
+          isIdentifierImportedFrom(callee, /fp-ts\//, context, node)
       )
     );
   }
@@ -369,16 +364,29 @@ export const contextUtils = <
       option.exists(
         (callee) =>
           ["pipe", "flow"].includes(callee.name) &&
-          isIdentifierImportedFrom(callee, /fp-ts\//, context)
+          isIdentifierImportedFrom(callee, /fp-ts\//, context, node)
       )
     );
+  }
+
+  function isIdentifier(imported: TSESTree.Identifier | TSESTree.StringLiteral): imported is TSESTree.Identifier {
+    return Object.prototype.hasOwnProperty.call(imported, 'name')
+  }
+
+  function getIdentifierName(imported: TSESTree.Identifier | TSESTree.StringLiteral): option.Option<string> {
+    return pipe(
+        imported,
+        option.fromPredicate(isIdentifier),
+        option.map(({ name }) => name)
+    )
   }
 
   function isOnlyUsedAsType(node: TSESTree.ImportClause): boolean {
     if (node.type === AST_NODE_TYPES.ImportSpecifier) {
       return pipe(
-        ASTUtils.findVariable(context.getScope(), node.imported.name),
-        option.fromNullable,
+        getIdentifierName(node.imported),
+        option.map(name => ASTUtils.findVariable(context.sourceCode.getScope(node), name)),
+        option.chain(option.fromNullable),
         option.exists((variable) => {
           const nonImportReferences = pipe(
             variable.references,
@@ -400,11 +408,10 @@ export const contextUtils = <
     return false;
   }
 
-  function parserServices(): Option<ParserServices> {
+  function parserServices(): Option<ParserServices & { program: Exclude<ParserServices['program'], null> }> {
     return pipe(
-      context.parserServices,
-      option.fromNullable,
-      option.filter((parserServices) => parserServices.hasFullTypeInformation)
+      option.fromNullable(context.sourceCode.parserServices),
+      option.filter((parserServices): parserServices is ParserServices & { program: Exclude<ParserServices['program'], null> }=> parserServices.program !== null)
     );
   }
 
@@ -413,7 +420,7 @@ export const contextUtils = <
       option.Do,
       option.bind("parserServices", parserServices),
       option.bind("typeChecker", ({ parserServices }) =>
-        pipe(parserServices.program.getTypeChecker(), option.fromNullable)
+        pipe(parserServices.program?.getTypeChecker(), option.fromNullable)
       ),
       option.map(({ parserServices, typeChecker }) => {
         const tsNode = parserServices.esTreeNodeToTSNodeMap.get(node);
@@ -515,6 +522,7 @@ export const createSequenceExpressionFromCallExpressionWithExpressionArgs = (
   const firstArg = pipe(call.args, NonEmptyArray.head);
   const lastArg = pipe(call.args, NonEmptyArray.last);
   return {
+    parent: call.node,
     loc: call.node.loc,
     range: [firstArg.range[0], lastArg.range[1]],
     type: AST_NODE_TYPES.SequenceExpression,

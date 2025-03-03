@@ -3,5 +3,5 @@
     "strict": true,
     "jsx": "preserve"
   },
-  "include": ["file.ts", "file.tsx"]
+  "include": ["file.ts", "react.tsx"]
 }
