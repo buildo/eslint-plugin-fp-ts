@@ -1,6 +1,6 @@
 {
   "name": "eslint-plugin-fp-ts",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "fp-ts ESLint rules",
   "keywords": [
     "eslint",
