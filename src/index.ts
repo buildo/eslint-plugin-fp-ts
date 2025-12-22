@@ -19,7 +19,6 @@ const suggestions = {
 
 const pkg = require('../package.json');
 
-
 export const meta: ESLint.Plugin["meta"] & {namespace?: string} = {
   name: pkg.name,
   version: pkg.version,
