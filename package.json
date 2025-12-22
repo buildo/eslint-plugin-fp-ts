@@ -1,6 +1,6 @@
 {
   "name": "eslint-plugin-fp-ts",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "fp-ts ESLint rules",
   "keywords": [
     "eslint",
@@ -10,6 +10,7 @@
   ],
   "author": "buildo",
   "main": "lib/index.js",
+  "types": "lib/index.d.ts",
   "repository": {
     "type": "git",
     "url": "https://github.com/buildo/eslint-plugin-fp-ts"
@@ -17,7 +18,9 @@
   "scripts": {
     "prepare": "npm run build",
     "preversion": "yarn lint && yarn test && yarn build",
+    "declarations": "tsc -p ./tsconfig.declaration.json",
     "build": "rimraf lib && yarn tsc",
+    "postbuild": "yarn declarations",
     "pretest": "yarn --cwd tests/fixtures/fp-ts-project install",
     "test": "jest",
     "lint": "eslint src/**/*.ts"
