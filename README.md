@@ -19,39 +19,59 @@ npm install --save-dev eslint-plugin-fp-ts
 yarn add --dev eslint-plugin-fp-ts
 ```
 
-Then enable the plugin in your `.eslintrc` config
+Then enable the plugin in your `eslint.config.mjs` file
 
-```json
-{
-  "plugins": ["fp-ts"]
-}
+```js
+import {defineConfig} from 'eslint/config'
+import fptsPlugin from 'eslint-plugin-fp-ts'
+
+export default defineConfig(
+  {
+    plugins: {
+      'fp-ts': fptsPlugin,
+    }
+  }
+)
 ```
 
 and enable the rules you want, for example
 
-```json
-{
-  "plugins": ["fp-ts"],
-  "rules": {
-    "fp-ts/no-lib-imports": "error"
+```js
+export default defineConfig(
+  {
+    plugins: {
+      'fp-ts': fptsPlugin,
+    },
+
+    rules: {
+      "fp-ts/no-lib-imports": "error"
+    }
   }
-}
+)
 ```
 
 If you want to enable rules that require type information (see the table below),
 then you will also need to add some extra info:
 
 ```js
-module.exports = {
-  plugins: ["fp-ts"],
-  parserOptions: {
-    tsconfigRootDir: __dirname,
-    project: ["./tsconfig.json"],
-  },
-  rules: {
-    "fp-ts/no-discarded-pure-expression": "error",
-  },
-};
+export default defineConfig(
+  {
+    plugins: {
+      'fp-ts': fptsPlugin,
+    },
+
+    languageOptions: {
+      parserOptions: {
+        projectService: true,
+        tsconfigRootDir: import.meta.dirname
+      }
+    },
+
+    rules: {
+      "fp-ts/no-discarded-pure-expression": "error",
+    }
+  }
+)
 ```
 
 If your project is a multi-package monorepo, you can follow the instructions
@@ -87,12 +107,18 @@ If your project is a multi-package monorepo, you can follow the instructions
 
 The plugin defines a `recommended` configuration with some reasonable defaults.
 
-To use it, add it to the `extends` clause of your `.eslintrc` file:
+To use it, add it to the `extends` clause of your `eslint.config.mjs` file:
 
-```json
-{
-  "extends": ["plugin:fp-ts/recommended"]
-}
+```js
+export default defineConfig(
+  {
+    plugins: {
+      'fp-ts': fptsPlugin,
+    },
+
+    extends: ["plugin:fp-ts/recommended"]
+  }
+)
 ```
 
 The rules included in this configuration are:
@@ -107,13 +133,19 @@ recommended rules which require type information.
 
 This configuration needs to be included _in addition_ to the `recommended` one:
 
-```
-{
-  "extends": [
-    "plugin:fp-ts/recommended",
-    "plugin:fp-ts/recommended-requiring-type-checking"
-  ]
-}
+```js
+export default defineConfig(
+  {
+    plugins: {
+      'fp-ts': fptsPlugin,
+    },
+
+    extends: [
+      "fp-ts/recommended",
+      "fp-ts/recommended-requiring-type-checking"
+    ]
+  }
+)
 ```
 
 > 👉 You can read more about linting with type information, including
@@ -125,10 +157,16 @@ This configuration needs to be included _in addition_ to the `recommended` one:
 The plugin also defines an `all` configuration which includes every available
 rule.
 
-To use it, add it to the `extends` clause of your `.eslintrc` file:
+To use it, add it to the `extends` clause of your `eslint.config.mjs` file:
 
-```json
-{
-  "extends": ["plugin:fp-ts/all"]
-}
+```js
+export default defineConfig(
+  {
+    plugins: {
+      'fp-ts': fptsPlugin,
+    },
+
+    extends: ["fp-ts/all",]
+  }
+)
 ```
