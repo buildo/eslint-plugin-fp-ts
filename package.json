@@ -15,6 +15,10 @@
     "type": "git",
     "url": "https://github.com/buildo/eslint-plugin-fp-ts"
   },
+  "homepage": "https://github.com/buildo/eslint-plugin-fp-ts#readme",
+  "bugs": {
+    "url": "https://github.com/buildo/eslint-plugin-fp-ts/issues"
+  },
   "scripts": {
     "prepare": "npm run build",
     "preversion": "yarn lint && yarn test && yarn build",
