@@ -1,0 +1,58 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write # push the version-bump commit back to main
+  id-token: write # npm Trusted Publishing (OIDC) + provenance
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      # Check out main (not the detached tag) so we can commit the version bump
+      # on top of it, mirroring the previous Concourse pipeline.
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: yarn
+
+      # Trusted Publishing requires npm >= 11.5.1.
+      - run: npm install -g npm@latest
+
+      - name: Derive version from tag
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
+
+      - run: yarn install --frozen-lockfile
+
+      - run: yarn lint
+
+      - run: yarn test
+
+      - run: yarn build
+
+      - name: Align package.json version to the tag
+        run: npm version "$VERSION" --no-git-tag-version --allow-same-version
+
+      - name: Commit version bump to main
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet package.json; then
+            echo "package.json already at v$VERSION, nothing to commit"
+          else
+            git add package.json
+            git commit -m "v$VERSION"
+            git push origin HEAD:main
+          fi
+
+      - name: Publish to npm
+        run: npm publish --provenance --access public

@@ -1,4 +1,4 @@
-![badge](https://concourse.our.buildo.io/api/v1/teams/buildo/pipelines/eslint-plugin-fp-ts/badge)
+![CI](https://github.com/buildo/eslint-plugin-fp-ts/actions/workflows/ci.yml/badge.svg)
 ![npm](https://img.shields.io/npm/dm/eslint-plugin-fp-ts)
 ![npm](https://img.shields.io/npm/v/eslint-plugin-fp-ts)
 
