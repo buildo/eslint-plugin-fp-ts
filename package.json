@@ -33,7 +33,6 @@
     "lib"
   ],
   "dependencies": {
-    "@typescript-eslint/typescript-estree": "^8.25.0",
     "@typescript-eslint/utils": "^8.0.0",
     "fp-ts": "^2.9.3",
     "recast": "^0.23.11"
@@ -42,19 +41,29 @@
     "@swc/core": "^1.11.5",
     "@swc/jest": "^0.2.37",
     "@types/common-tags": "^1.8.0",
-    "@types/node": "^17.0.31",
+    "@types/node": "^20.19.0",
     "@types/requireindex": "^1.2.0",
-    "@typescript-eslint/parser": "^8.25.0",
-    "@typescript-eslint/rule-tester": "^8.25.0",
+    "@typescript-eslint/parser": "^8.70.1",
+    "@typescript-eslint/rule-tester": "^8.70.1",
     "common-tags": "^1.8.0",
-    "eslint": "^9.0.0",
+    "eslint": "^10.11.0",
     "eslint-plugin-fp-ts": "link:./lib",
     "jest": "^29.7.0",
     "rimraf": "^6.0.1",
     "typescript": "^5.0"
   },
   "peerDependencies": {
-    "eslint": "^9.0"
+    "@typescript-eslint/parser": "^8.0.0",
+    "eslint": "^9.0.0 || ^10.0.0",
+    "typescript": "^5.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@typescript-eslint/parser": {
+      "optional": true
+    },
+    "typescript": {
+      "optional": true
+    }
   },
   "engines": {
     "node": ">=0.10.0"

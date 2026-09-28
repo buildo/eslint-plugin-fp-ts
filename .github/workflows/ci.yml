@@ -9,6 +9,11 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        eslint-version: [9, 10]
+    name: Test (ESLint ${{ matrix.eslint-version }})
     steps:
       - uses: actions/checkout@v4
 
@@ -18,6 +23,10 @@ jobs:
           cache: yarn
 
       - run: yarn install --frozen-lockfile
+
+      - name: Install ESLint ${{ matrix.eslint-version }}
+        if: matrix.eslint-version == 9
+        run: yarn add --dev eslint@^9.0.0 --ignore-engines
 
       - run: yarn lint
 

@@ -136,7 +136,7 @@ export default createRule<Options, MessageIds>({
                       ? [removeImportDeclaration(node, fixer)]
                       : nonTypeImports.map((node) => {
                           if (
-                            context.getSourceCode().getTokenAfter(node)
+                            context.sourceCode.getTokenAfter(node)
                               ?.value === ","
                           ) {
                             return fixer.removeRange([
