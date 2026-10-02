@@ -7,7 +7,6 @@ import {
   ParserServices,
 } from "@typescript-eslint/utils";
 import * as recast from "recast";
-import { simpleTraverse } from "@typescript-eslint/typescript-estree";
 import { array, option, apply } from "fp-ts";
 import { pipe } from "fp-ts/function";
 import ts from "typescript";
@@ -194,33 +193,24 @@ export const contextUtils = <
   function findModuleImport(
     moduleName: string
   ): option.Option<TSESTree.ImportDeclaration> {
-    let importNode: option.Option<TSESTree.ImportDeclaration> = option.none;
-
-    simpleTraverse(context.getSourceCode().ast as any, {
-        enter: (node) => {
-            if (
-                node.type === "ImportDeclaration" &&
-                ASTUtils.getStringIfConstant(node.source as TSESTree.Literal) === moduleName
-            ) {
-                importNode = option.some(node as TSESTree.ImportDeclaration);
-            }
-        }
-    })
-    return importNode;
+    return pipe(
+      context.sourceCode.ast.body,
+      array.findLast(
+        (node): node is TSESTree.ImportDeclaration =>
+          node.type === AST_NODE_TYPES.ImportDeclaration &&
+          ASTUtils.getStringIfConstant(node.source) === moduleName
+      )
+    );
   }
 
   function findLastModuleImport(): option.Option<TSESTree.ImportDeclaration> {
-    let importNode: option.Option<TSESTree.ImportDeclaration> = option.none;
-    simpleTraverse(context.getSourceCode().ast as any, {
-        enter: (node) => {
-            if (
-                node.type === "ImportDeclaration"
-            ) {
-                importNode = option.some(node as TSESTree.ImportDeclaration);
-            }
-        }
-    })
-    return importNode;
+    return pipe(
+      context.sourceCode.ast.body,
+      array.findLast(
+        (node): node is TSESTree.ImportDeclaration =>
+          node.type === AST_NODE_TYPES.ImportDeclaration
+      )
+    );
   }
 
   function addNamedImportIfNeeded(
@@ -277,7 +267,7 @@ export const contextUtils = <
                       if (
                         ASTUtils.isCommaToken(
                           context
-                            .getSourceCode()
+                            .sourceCode
                             .getTokenAfter(lastImportSpecifier)!
                         )
                       ) {
@@ -311,12 +301,12 @@ export const contextUtils = <
     node: TSESTree.ImportDeclaration,
     fixer: TSESLint.RuleFixer
   ): TSESLint.RuleFix {
-    const nextToken = context.getSourceCode().getTokenAfter(node);
+    const nextToken = context.sourceCode.getTokenAfter(node);
 
     if (nextToken && nextToken.loc.start.line > node.loc.start.line) {
       return fixer.removeRange([
         node.range[0],
-        context.getSourceCode().getIndexFromLoc({
+        context.sourceCode.getIndexFromLoc({
           line: node.loc.start.line + 1,
           column: 0,
         }),
