@@ -33,7 +33,7 @@
     "lib"
   ],
   "dependencies": {
-    "@typescript-eslint/utils": "^8.0.0",
+    "@typescript-eslint/utils": "^8.71.0",
     "fp-ts": "^2.9.3",
     "recast": "^0.23.11"
   },

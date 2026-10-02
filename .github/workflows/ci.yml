@@ -7,7 +7,7 @@ on:
       - main
 
 jobs:
-  test:
+  test-matrix:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -33,3 +33,17 @@ jobs:
       - run: yarn test
 
       - run: yarn build
+
+  test:
+    needs: test-matrix
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check matrix result
+        run: |
+          if [[ "${{ needs.test-matrix.result }}" == "success" ]]; then
+            exit 0
+          else
+            echo "Matrix jobs did not all pass: ${{ needs.test-matrix.result }}"
+            exit 1
+          fi
